@@ -83,8 +83,10 @@ const dl = { total: 0, done: 0, cb: null };
 async function fetchBuf(url) {
   const r = await fetch(url); const len = +r.headers.get('content-length') || 0;
   if (!r.body || !len) { const b = await r.arrayBuffer(); dl.total += b.byteLength; dl.done += b.byteLength; dl.cb?.(dl.done / dl.total); return b; }
-  dl.total += len; const reader = r.body.getReader(), out = new Uint8Array(len); let off = 0;
-  for (;;) { const { done, value } = await reader.read(); if (done) break; out.set(value, off); off += value.length; dl.done += value.length; dl.cb?.(Math.min(1, dl.done / dl.total)); }
+  // si el servidor comprime (Content-Encoding), el cuerpo llega descomprimido y es más largo que content-length
+  dl.total += len; const reader = r.body.getReader(), chunks = []; let off = 0;
+  for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); off += value.length; dl.done += Math.min(value.length, Math.max(0, len - (off - value.length))); dl.cb?.(Math.min(1, dl.done / dl.total)); }
+  const out = new Uint8Array(off); let p = 0; for (const c of chunks) { out.set(c, p); p += c.length; }
   return out.buffer;
 }
 export async function loadPack(name, o = {}) {
@@ -93,7 +95,8 @@ export async function loadPack(name, o = {}) {
   let parts;
   if (man.v === 2) { // meshoptimizer + gzip (≈ 3 veces más ligero)
     const gz = await fetchBuf(base + '.mo.bin');
-    const raw = new Uint8Array(await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+    const g8 = new Uint8Array(gz); // algunos servidores (GitHub Pages) ya lo entregan descomprimido
+    const raw = g8[0] === 0x1f && g8[1] === 0x8b ? new Uint8Array(await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()) : g8;
     await MeshoptDecoder.ready;
     parts = Object.entries(man.mo).map(([k, P]) => { const vb = new Uint8Array(P.nv * 8), ib = new Uint8Array(P.ni * 4);
       MeshoptDecoder.decodeVertexBuffer(vb, P.nv, 8, raw.subarray(P.vb[0], P.vb[0] + P.vb[1])); MeshoptDecoder.decodeIndexBuffer(ib, P.ni, 4, raw.subarray(P.ib[0], P.ib[0] + P.ib[1]));
