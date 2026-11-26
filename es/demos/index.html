@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demos interactivas de salud e ingeniería biomédica | Andrés Monreal Ciencia</title>
+<meta name="description" content="Demos 3D que corren en el navegador: un corazón real, un pulsioxímetro, un goteo, pulmones y rodilla. Educativas, no clínicas.">
+<meta property="og:title" content="Demos interactivas de salud e ingeniería biomédica">
+<meta property="og:description" content="Demos 3D que corren en el navegador: un corazón real, un pulsioxímetro, un goteo, pulmones y rodilla. Educativas, no clínicas.">
+<meta property="og:image" content="https://sircalch.github.io/salud-ib/es/demos/app/thumbs/corazon.jpg">
+<link rel="canonical" href="https://sircalch.github.io/salud-ib/es/demos/">
+<link rel="alternate" hreflang="en" href="https://sircalch.github.io/salud-ib/demos/">
+<link rel="icon" href="https://sircalch.github.io/assets/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="app/fonts/unbounded-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="app/gallery.css">
+</head>
+<body>
+<a class="skip" href="#demos">Saltar al contenido</a>
+<header class="site-head"><div class="wrap">
+<a class="logo" href="https://sircalch.github.io/es/"><i aria-hidden="true"><b></b><b></b><b></b></i>AM Ciencia</a>
+<nav class="site-nav" aria-label="Principal"><a href="https://sircalch.github.io/es/" style="--d:#2dd4bf">Inicio</a><a href="https://sircalch.github.io/es/herramientas/" style="--d:#ffd23f">Herramientas</a><a href="./" aria-current="page">Demos</a><a href="https://sircalch.github.io/es/collaborate.html" style="--d:#ff5a6e">Contacto</a></nav>
+<a class="lang-switch" href="../../demos/" hreflang="en">English</a>
+</div></header>
+<main>
+<section class="hero wrap">
+<div class="kicker">Hecho para aprender, gratis para explorar</div>
+<h1><span>Demos</span></h1>
+<p>El cuerpo humano, los equipos médicos y la práctica clínica, abiertos para explorar. Modelos anatómicos reales, cada demo corre en tu navegador y se abre a pantalla completa.</p>
+<a class="lessons" href="https://sircalch.github.io/es/herramientas/"><b>LECCIONES</b>Simuladores y lecciones están en Herramientas <span aria-hidden="true">→</span></a>
+</section>
+<section class="wrap" id="demos">
+<div class="chips" role="group" aria-label="Filtrar demos por área"><button class="chip" type="button" data-f="all" aria-pressed="true"><i style="--c:#121225"></i>Todo <small>11</small></button><button class="chip" type="button" data-f="med" aria-pressed="false"><i style="--c:#ff5a6e"></i>Medicina <small>5</small></button><button class="chip" type="button" data-f="bme" aria-pressed="false"><i style="--c:#3b82f6"></i>Ingeniería biomédica <small>5</small></button><button class="chip" type="button" data-f="nur" aria-pressed="false"><i style="--c:#2dd4bf"></i>Enfermería <small>6</small></button><button class="chip" type="button" data-f="phy" aria-pressed="false"><i style="--c:#ffb020"></i>Fisioterapia <small>2</small></button></div>
+<ul class="grid">
+<li data-cat="nur bme"><a class="card" style="--c:#2dd4bf" href="tensiometro/"><div class="thumb"><img src="app/thumbs/tensiometro.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"><span class="sticker" aria-hidden="true">NUEVO</span></div><div class="body"><span class="tag"><i></i>Enfermería</span><h2>Tomar la presión arterial</h2><p>Un brazo real y un esfigmomanómetro aneroide: infla el brazalete, escucha los ruidos de Korotkoff y descubre cómo mide un monitor automático.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="med nur bme"><a class="card" style="--c:#ff5a6e" href="desfibrilador/"><div class="thumb"><img src="app/thumbs/desfibrilador.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"><span class="sticker" aria-hidden="true">NUEVO</span></div><div class="body"><span class="tag"><i></i>Medicina</span><h2>El desfibrilador (DEA)</h2><p>Un DEA sobre un paciente reconstruido con piel, costillas y corazón reales: parches, análisis del ritmo, descarga y RCP de alta calidad.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="bme med nur"><a class="card" style="--c:#3b82f6" href="ecg/"><div class="thumb"><img src="app/thumbs/ecg.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"><span class="sticker" aria-hidden="true">NUEVO</span></div><div class="body"><span class="tag"><i></i>Ingeniería biomédica</span><h2>El ECG de 12 derivaciones</h2><p>Coloca los 10 electrodos sobre un tórax real y mira cómo el vector eléctrico del corazón se ve distinto desde cada derivación.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="med"><a class="card" style="--c:#ff5a6e" href="corazon/"><div class="thumb"><img src="app/thumbs/corazon.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Medicina</span><h2>El corazón eléctrico</h2><p>Un corazón humano real, reconstruido de imágenes médicas. Sigue el impulso del nodo sinusal a las fibras de Purkinje, sincronizado con un ECG.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="bme nur"><a class="card" style="--c:#3b82f6" href="pulsioximetro/"><div class="thumb"><img src="app/thumbs/pulsioximetro.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Ingeniería biomédica</span><h2>La luz que mide el oxígeno</h2><p>Un pulsioxímetro abierto en 3D: luz roja e infrarroja atraviesan el dedo y el aparato calcula la saturación. Incluye quiz.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="nur"><a class="card" style="--c:#2dd4bf" href="goteo/"><div class="thumb"><img src="app/thumbs/goteo.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Enfermería</span><h2>Gota a gota</h2><p>Un equipo de venoclisis: gira la pinza, cuenta gotas 15 segundos y resuelve indicaciones de mL/h y gotas por minuto.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="med"><a class="card" style="--c:#ff5a6e" href="pulmones/"><div class="thumb"><img src="app/thumbs/pulmones.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Medicina</span><h2>Cómo respiras</h2><p>Pulmones, costillas y diafragma reales. Inhala, mira la presión y la distensibilidad, entra a los alvéolos y prueba un ventilador.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="phy"><a class="card" style="--c:#ffb020" href="rodilla/"><div class="thumb"><img src="app/thumbs/rodilla.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Fisioterapia</span><h2>La rodilla como palanca</h2><p>Huesos y cuádriceps reales en una sentadilla: mira cómo crecen las fuerzas en la rótula con cada grado de flexión.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="med"><a class="card" style="--c:#ff5a6e" href="valvulas/"><div class="thumb"><img src="app/thumbs/valvulas.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Medicina</span><h2>Válvulas y ruidos del corazón</h2><p>Válvulas reales que abren y cierran con cada latido, ruidos S1 y S2, focos de auscultación sobre piel real y soplos.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="phy"><a class="card" style="--c:#ffb020" href="marcha/"><div class="thumb"><img src="app/thumbs/marcha.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Fisioterapia</span><h2>Marcha paso a paso</h2><p>Una pierna real camina: las ocho fases de la marcha, ángulos de cadera, rodilla y tobillo y los músculos que trabajan.</p><span class="go">Abrir demo →</span></div></a></li>
+<li data-cat="bme nur"><a class="card" style="--c:#3b82f6" href="ventilador/"><div class="thumb"><img src="app/thumbs/ventilador.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Ingeniería biomédica</span><h2>Dentro del ventilador</h2><p>Pulmones reales intubados y un ventilador con curvas de presión, flujo y volumen: modos, PEEP, presión meseta y alarmas.</p><span class="go">Abrir demo →</span></div></a></li>
+</ul>
+</section>
+</main>
+<footer class="site-foot"><div class="wrap">
+<div class="cols">
+<div><h3>Explorar</h3><ul><li><a href="https://sircalch.github.io/es/">Inicio</a></li><li><a href="https://sircalch.github.io/es/herramientas/">Herramientas</a></li><li><a href="./">Demos</a></li><li><a href="https://sircalch.github.io/es/collaborate.html">Contacto</a></li></ul></div>
+<div><h3>Créditos</h3><ul class="note"><li>Modelos anatómicos: BodyParts3D, © The Database Center for Life Science, CC BY-SA 2.1 JP</li><li>Motor 3D: Three.js (MIT)</li><li>Tipografías: Unbounded y Manrope (SIL OFL)</li></ul></div>
+<div><h3>Sobre estas demos</h3><p class="note">Material educativo para estudiantes y público general de ingeniería biomédica, medicina, enfermería y fisioterapia. No es consejo médico ni sustituye protocolos institucionales.</p></div>
+</div>
+<div class="legal"><span>© 2026 Andrés Monreal Ciencia</span><a href="../../demos/">English</a></div>
+</div></footer>
+<script>
+(function(){var cs=[].slice.call(document.querySelectorAll('.chip')),items=[].slice.call(document.querySelectorAll('.grid > li'));
+cs.forEach(function(b){b.addEventListener('click',function(){var f=b.dataset.f;cs.forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});items.forEach(function(li){li.hidden=!(f==='all'||li.dataset.cat.split(' ').indexOf(f)>=0)});history.replaceState(null,'',f==='all'?location.pathname:'#'+f)})});
+var h=location.hash.slice(1);var m=cs.filter(function(b){return b.dataset.f===h})[0];if(m)m.click();})();
+</script>
+</body>
+</html>
