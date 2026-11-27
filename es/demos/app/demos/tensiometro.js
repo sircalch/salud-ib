@@ -45,10 +45,10 @@ const chapters = [
       { es: 'La oscilación máxima ocurre en la presión arterial media. Sistólica y diastólica se calculan con proporciones de esa curva.', en: 'The largest oscillation happens at mean arterial pressure. Systolic and diastolic are estimated from ratios of that curve.' },
       { es: 'Pulsa «Medición automática» y mira cómo desinfla por escalones.', en: 'Press "Automatic reading" and watch it deflate in steps.' }
     ], exit: () => { S.auto = null; } },
-  { title: { es: 'Errores comunes', en: 'Common errors' }, cam: { pos: [-.2, 3.1, 7.2], target: [-.6, .5, 0] }, labels: [0],
+  { title: { es: 'Errores comunes', en: 'Common errors' }, cam: { pos: [-.2, 3.1, 7.2], target: [-.6, .5, 0] }, labels: [0, 8],
     lines: [
       { es: 'Elige un error y mide otra vez. Compara con la presión real del paciente.', en: 'Pick an error and measure again. Compare with the patient\'s true pressure.' },
-      { es: 'Brazalete chico o brazo colgando suben la lectura. Desinflar rápido hace saltar el primer ruido y subestima la sistólica.', en: 'A small cuff or a hanging arm push the reading up. Deflating too fast skips the first tap and underestimates systolic.' },
+      { es: 'Un brazalete chico o el brazo sin apoyo, por debajo del corazón, suben la lectura. Desinflar rápido hace saltar el primer ruido y subestima la sistólica.', en: 'A small cuff or an unsupported arm below heart level push the reading up. Deflating too fast skips the first tap and underestimates systolic.' },
       { es: 'Valores educativos aproximados, basados en la literatura sobre técnica de medición.', en: 'Approximate teaching values, based on the literature on measurement technique.' }
     ], enter: () => { S.P = 0; resetFound(); }, exit: () => { S.err = 'ok'; S.inflating = false; } },
   { title: { es: 'Ponte a prueba', en: 'Test yourself' }, cam: { pos: [1.2, 3.9, 9.2], target: [.2, .4, -.4] }, labels: [],
@@ -115,7 +115,7 @@ createDemo({
     if (ci === 2) ui.seg([{ value: 'normal', label: { es: 'Normal', en: 'Normal' } }, { value: 'htn', label: { es: 'Hipertenso', en: 'Hypertensive' } }, { value: 'low', label: { es: 'Hipotenso', en: 'Hypotensive' } }], S.pt, (v) => { S.pt = v; S.P = 0; resetFound(); });
     if (ci === 3) ui.slider({ es: 'Presión del brazalete', en: 'Cuff pressure' }, { min: 0, max: 200, step: 1, value: S.manual ?? 130, fmt: (v) => v + ' mmHg' }, (v) => { S.manual = v; });
     if (ci === 4) { c.state.mR = ui.metric({ es: 'resultado (PAM)', en: 'result (MAP)' }, 'mmHg'); ui.button({ es: 'Medición automática', en: 'Automatic reading' }, () => startAuto(c)); }
-    if (ci === 5) ui.seg([{ value: 'ok', label: { es: 'Correcto', en: 'Correct' } }, { value: 'small', label: { es: 'Brazalete chico', en: 'Small cuff' } }, { value: 'low', label: { es: 'Brazo colgando', en: 'Arm hanging' } }, { value: 'fast', label: { es: 'Desinflar rápido', en: 'Fast deflation' } }], S.err, (v) => { S.err = v; S.P = 0; resetFound(); });
+    if (ci === 5) ui.seg([{ value: 'ok', label: { es: 'Correcto', en: 'Correct' } }, { value: 'small', label: { es: 'Brazalete chico', en: 'Small cuff' } }, { value: 'low', label: { es: 'Brazo sin apoyo', en: 'Unsupported arm' } }, { value: 'fast', label: { es: 'Desinflar rápido', en: 'Fast deflation' } }], S.err, (v) => { S.err = v; S.P = 0; resetFound(); });
     if (ci === 6) ui.button({ es: 'Abrir quiz', en: 'Open quiz' }, () => c.quiz(QUIZ));
   },
   async build(c) {
@@ -152,8 +152,8 @@ createDemo({
       for (let k = 1; k <= 8; k++) levels.push(last.map((p2) => V(cx + (p2.x - cx) * (1 - .012 * k), p2.y - k * 70 * SC, cz2 + (p2.z - cz2) * (1 - .03 * k))));
       const N2 = levels[0].length, g2 = new THREE.BufferGeometry(), pos = [], idx = []; levels.forEach((ring) => ring.forEach((p2) => pos.push(p2.x, p2.y, p2.z)));
       for (let v = 0; v < levels.length - 1; v++) for (let i = 0; i < N2; i++) { const a = v * N2 + i, b = v * N2 + (i + 1) % N2, c2 = a + N2, d = b + N2; idx.push(a, c2, b, b, c2, d); }
-      g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setIndex(idx); g2.computeVertexNormals(); const m = new THREE.Mesh(g2, cloth); m.castShadow = m.receiveShadow = true; arm.add(m);
-      const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ringAt(1012, 16 * SC), true), 160, 6 * SC, 8, true), new THREE.MeshPhysicalMaterial({ color: '#2c3e52', roughness: .8 })); arm.add(band); }
+      g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setIndex(idx); g2.computeVertexNormals(); const m = new THREE.Mesh(g2, cloth); m.castShadow = m.receiveShadow = true; m.userData.static = true; arm.add(m);
+      const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ringAt(1012, 16 * SC), true), 160, 6 * SC, 8, true), new THREE.MeshPhysicalMaterial({ color: '#2c3e52', roughness: .8 })); band.userData.static = true; arm.add(band); }
     // ---- ejes y perfiles del brazo (coordenadas locales del brazo) ----
     const sp = A.geo.skin.attributes.position, tv = V(0, 0, 0);
     const slab = (geo, y0, y1) => { const p = geo.attributes.position, s = V(0, 0, 0); let n = 0; for (let i = 0; i < p.count; i++) { tv.fromBufferAttribute(p, i); if (tv.y > y0 && tv.y < y1) { s.add(tv); n++; } } return s.multiplyScalar(1 / Math.max(1, n)); };
@@ -236,9 +236,9 @@ createDemo({
     const tubeMat = realMat('rubber', { color: '#2a2f36', roughness: .5, clearcoat: .3 });
     const mkTube = (pts, r = .042) => { const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 90, r, 10), tubeMat); m.castShadow = true; scene.add(m); return m; };
     const eA = exitW(-W * .15, .25), eB = exitW(W * .1, .3);
-    mkTube([eA, eA.clone().add(V(-.1, .45, .3)), V(-1.6, .6, 1.25), nipple.getWorldPosition(V(0, 0, 0))]);
+    const tubeA = { pts: [eA, eA.clone().add(V(-.1, .45, .3)), V(-1.6, .6, 1.25), nipple.getWorldPosition(V(0, 0, 0))], n: 2, r: .042 }; tubeA.m = mkTube(tubeA.pts);
     const vtip = valve.getWorldPosition(V(0, 0, 0)).add(V(-.18, .05, 0));
-    mkTube([eB, eB.clone().add(V(.1, .3, .45)), V(-.35, .38, 1.75), vtip]);
+    const tubeB = { pts: [eB, eB.clone().add(V(.1, .3, .45)), V(-.35, .38, 1.75), vtip], n: 2, r: .042 }; tubeB.m = mkTube(tubeB.pts);
     // ---- estetoscopio sobre la fosa del codo ----
     const fossa = arm.localToWorld(hp[Math.floor(hp.length * .55)].clone());
     let top = null; { let bd = 1e9; for (let i = 0; i < sp.count; i += 2) { const w = arm.localToWorld(tv.fromBufferAttribute(sp, i).clone()); const d = (w.x - fossa.x) ** 2 + (w.z - fossa.z) ** 2 - w.y * .004; if (d < bd && w.y > fossa.y) { bd = d; top = w; } } }
@@ -247,8 +247,8 @@ createDemo({
     const rim = new THREE.Mesh(new THREE.CylinderGeometry(.25, .27, .09, 48), chrome); rim.castShadow = true; steth.add(rim);
     const diaph = new THREE.Mesh(new THREE.CircleGeometry(.235, 48), realMat('plastic', { color: '#eef1f4', roughness: .35 })); diaph.rotation.x = Math.PI / 2; diaph.position.y = -.046; steth.add(diaph);
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(.045, .05, .26, 16), chrome); stem.position.set(.12, .14, 0); stem.rotation.z = -1.0; steth.add(stem);
-    const sTip = stem.getWorldPosition(V(0, 0, 0)).add(V(.14, .08, 0));
-    { const rest = V(sTip.x + 1.2, .07, sTip.z + 1.5); mkTube([sTip, sTip.clone().add(V(.3, .45, .35)), sTip.clone().add(V(.8, .3, .9)), rest], .05);
+    const sTip = stem.getWorldPosition(V(0, 0, 0)).add(V(.14, .08, 0)), tubeS = { n: 2, r: .05 };
+    { const rest = V(sTip.x + 1.2, .07, sTip.z + 1.5); tubeS.pts = [sTip, sTip.clone().add(V(.3, .45, .35)), sTip.clone().add(V(.8, .3, .9)), rest]; tubeS.m = mkTube(tubeS.pts, .05);
       // yugo y olivas del estetoscopio apoyados sobre la cama
       for (const sgn of [-1, 1]) { const end = rest.clone().add(V(.9, .05, sgn * .35)); const bin = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([rest, rest.clone().add(V(.35, .12, sgn * .1)), end]), 30, .022, 8), chrome); bin.castShadow = true; scene.add(bin);
         const tip = new THREE.Mesh(new THREE.SphereGeometry(.05, 16, 12), realMat('rubber', { color: '#1d2228' })); tip.position.copy(end); scene.add(tip); } }
@@ -266,6 +266,42 @@ createDemo({
     // cámaras calculadas sobre la anatomía real: tramo de arteria bajo el borde distal del brazalete
     { const tg = arm.localToWorld(ctr[Math.min(NS, u1 + 4)].clone()); chapters[3].cam = { pos: tg.clone().add(V(.6, 1.3, 3.1)).toArray(), target: tg.clone().add(V(-.45, -.1, 0)).toArray() };
       chapters[1].cam = { pos: tg.clone().add(V(.4, 2.2, 4.6)).toArray(), target: tg.clone().add(V(-.7, 0, 0)).toArray() }; }
+    // ---- apoyo: cuña bajo el brazo a la altura del corazón (técnica correcta en decúbito). En el error «brazo bajo» la cuña se retira y el brazo baja ----
+    const TH0 = .085, RIG = { th: 0 };
+    { const cenG = (geo) => { geo.computeBoundingBox(); return geo.boundingBox.getCenter(V(0, 0, 0)); };
+      const aL2 = cenG(A.geo.hand).sub(cenG(A.geo.humerus)).normalize(), hc = cenG(A.geo.humerus), hpp = A.geo.humerus.attributes.position, SL = V(0, 0, 0); let tmin = 1e9;
+      for (let i = 0; i < hpp.count; i++) { tv.fromBufferAttribute(hpp, i); const t = tv.clone().sub(hc).dot(aL2); if (t < tmin) { tmin = t; SL.copy(tv); } }
+      arm.updateMatrixWorld(true); const SW = arm.localToWorld(SL.clone()), kL = V(0, 0, 1).applyQuaternion(arm.quaternion.clone().invert()).normalize(), zW = V(0, 0, 1);
+      // piel: solo el brazo (cerca de su eje), con transición suave en el hombro
+      const skG = skinReal.geometry, bsp = skG.attributes.position, base = Float32Array.from(bsp.array), idxW = [], wts = [];
+      for (let i = 0; i < bsp.count; i++) { tv.fromBufferAttribute(bsp, i).sub(SL); const t = tv.dot(aL2); if (t < -.4) continue; const d = tv.addScaledVector(aL2, -t).length(); const w = smooth(-.3, .9, t) * (1 - smooth(.8, 1.02, d)); if (w > 0) { idxW.push(i); wts.push(w); } }
+      // huesos, músculos, brazalete, arteria y glóbulos giran juntos alrededor del hombro
+      const piv = new THREE.Group(); piv.position.copy(SL); const inner = new THREE.Group(); inner.position.copy(SL).negate(); piv.add(inner);
+      for (const o of arm.children.slice()) if (o !== skin && !o.userData.static) inner.add(o); arm.add(piv);
+      // objetos del mundo que acompañan al brazo
+      const rigW = [steth, crease].map((o) => ({ o, p: o.position.clone(), q: o.quaternion.clone() })), tubes = [tubeA, tubeB, tubeS].map((T2) => ({ ...T2, base: T2.pts.map((q) => q.clone()) }));
+      // cuña de espuma con funda
+      let zA = 1e9, zB = -1e9; for (let k = 0; k < idxW.length; k += 3) { if (wts[k] < .95) continue; const w = arm.localToWorld(tv.fromBufferAttribute(bsp, idxW[k]).clone()); if (w.x < SW.x + 1.2 || w.x > SW.x + 6.6) continue; zA = Math.min(zA, w.z); zB = Math.max(zB, w.z); }
+      const cz0 = (zA + zB) / 2, wdW = Math.max(1, zB - zA - .1), under = (x, th) => { const dx = x - SW.x, dy = -.02 - SW.y; return SW.y + dx * Math.sin(th) + dy * Math.cos(th); };
+      const x0 = SW.x + 1.1, x1 = SW.x + 6.8;
+      const wedge = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshPhysicalMaterial({ color: '#7590a8', roughness: .7, sheen: .3, sheenColor: new THREE.Color('#c9d8e5'), clearcoat: .2, clearcoatRoughness: .5 })); wedge.position.z = cz0; wedge.castShadow = wedge.receiveShadow = true; scene.add(wedge);
+      const wAnchor = new THREE.Object3D(); wAnchor.position.set(x1 - .8, .25, zB + .1); scene.add(wAnchor);
+      c.label({ es: 'Cuña de apoyo', en: 'Arm wedge' }, { es: 'brazo a la altura del corazón', en: 'arm at heart level' }, wAnchor, '#c7ced6'); // 8
+      const q = new THREE.Quaternion(), qW = new THREE.Quaternion(), v = V(0, 0, 0);
+      RIG.apply = () => { const th = RIG.th; piv.quaternion.setFromAxisAngle(kL, th);
+        const a = bsp.array; for (let k = 0; k < idxW.length; k++) { const i = idxW[k]; q.setFromAxisAngle(kL, th * wts[k]); v.set(base[i * 3] - SL.x, base[i * 3 + 1] - SL.y, base[i * 3 + 2] - SL.z).applyQuaternion(q); a[i * 3] = v.x + SL.x; a[i * 3 + 1] = v.y + SL.y; a[i * 3 + 2] = v.z + SL.z; }
+        bsp.needsUpdate = true; skG.computeVertexNormals();
+        qW.setFromAxisAngle(zW, th); for (const r of rigW) { r.o.position.copy(r.p).sub(SW).applyQuaternion(qW).add(SW); r.o.quaternion.copy(qW).multiply(r.q); }
+        for (const T2 of tubes) { const pts = T2.base.map((b, j) => (j < T2.n ? b.clone().sub(SW).applyQuaternion(qW).add(SW) : b)); T2.m.geometry.dispose(); T2.m.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 90, T2.r, 10); }
+        wedge.scale.y = Math.max(.001, Math.sin(th) / Math.sin(TH0)); wedge.visible = th > .004; };
+      RIG.th = TH0; RIG.apply();
+      // la cara superior de la cuña sigue la parte de abajo real del brazo ya apoyado (se hunde 1 cm)
+      { const NSx = 16, low = new Float32Array(NSx + 1).fill(1e9); arm.updateMatrixWorld(true);
+        for (let k = 0; k < idxW.length; k++) { if (wts[k] < .9) continue; const w = arm.localToWorld(tv.fromBufferAttribute(bsp, idxW[k]).clone()); const f = (w.x - x0) / (x1 - x0); if (f < -.03 || f > 1.03) continue; const j = Math.round(clamp(f, 0, 1) * NSx); low[j] = Math.min(low[j], w.y); }
+        for (let j = 0; j <= NSx; j++) if (low[j] > 1e8) low[j] = low[j - 1] ?? .1;
+        const top = Array.from(low, (y, j) => new THREE.Vector2(x0 + (x1 - x0) * j / NSx, Math.max(.08, Math.min(...[low[j - 1], y, low[j + 1]].filter((u) => u !== undefined)) - .2)));
+        const sh = new THREE.Shape([new THREE.Vector2(x0, 0), new THREE.Vector2(x1, 0), ...top.reverse()]);
+        const wg = new THREE.ExtrudeGeometry(sh, { depth: Math.max(.4, wdW - .36), bevelEnabled: true, bevelSize: .18, bevelThickness: .18, bevelSegments: 8, steps: 1, curveSegments: 4 }); wg.translate(0, 0, -Math.max(.4, wdW - .36) / 2); wg.computeVertexNormals(); wedge.geometry.dispose(); wedge.geometry = wg; } }
     const cuffMats = [fabric, innerMat, bindMat];
     // ---- monitor lateral ----
     const mon = c.side({ es: 'Presión del brazalete y arterial', en: 'Cuff and arterial pressure' }, 120);
@@ -334,6 +370,7 @@ createDemo({
       // brazo colgando (error): bajar el brazo por debajo del corazón
       const low = er.low && ci === 5 ? 1 : 0; arm.userData.low = lerp(arm.userData.low ?? 0, low, 1 - Math.exp(-rdt * 3));
       arm.position.y = -bb.min.y - .02;
+      { const tg = er.low && ci === 5 ? 0 : TH0; if (RIG.th !== tg) { RIG.th += (tg - RIG.th) * (1 - Math.exp(-rdt * 2.5)); if (Math.abs(RIG.th - tg) < 3e-4) RIG.th = tg; RIG.apply(); } }
       // monitor
       acc += dt * 70; while (acc >= 1) { acc -= 1; wx = (wx + 1) % MW; bufA[wx] = pa; bufC[wx] = S.P; tick[wx] = tick[wx] || 0; for (let k = 1; k < 14; k++) { const j = (wx + k) % MW; bufA[j] = bufC[j] = NaN; tick[j] = 0; } }
       g.clearRect(0, 0, MW, MH);
