@@ -244,6 +244,30 @@ export function fitSleeve(geo, p0, dir, from, to, o = {}) {
   const hem = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(hemPts, true), N * 2, hemR, 10, true), mat); hem.castShadow = true; grp.add(hem);
   return grp;
 }
+// Costura entre dos piezas de piel: pares de vértices que coinciden en reposo, para promediar sus normales
+// después de cada deformación (así no se ve una línea en la unión).
+// Suelda el borde de dos piezas de malla simplificadas por separado: cada vértice del borde de B se mueve
+// al vértice del borde de A más cercano (si está a menos de maxDist). Así no queda abertura en la unión.
+export function weldBorders(ga, gb, maxDist) {
+  const border = (g) => { const ix = g.index.array, cnt = new Map(), k = (a, b) => (a < b ? a * 4294967 + b : b * 4294967 + a);
+    for (let f = 0; f < ix.length; f += 3) for (const [a, b] of [[ix[f], ix[f + 1]], [ix[f + 1], ix[f + 2]], [ix[f + 2], ix[f]]]) cnt.set(k(a, b), (cnt.get(k(a, b)) || 0) + 1);
+    const set = new Set(); for (let f = 0; f < ix.length; f += 3) for (const [a, b] of [[ix[f], ix[f + 1]], [ix[f + 1], ix[f + 2]], [ix[f + 2], ix[f]]]) if (cnt.get(k(a, b)) === 1) { set.add(a); set.add(b); } return [...set]; };
+  const pa = ga.attributes.position, pb = gb.attributes.position, A = border(ga), B = border(gb), m2 = maxDist * maxDist; let n = 0;
+  for (const j of B) { let best = -1, bd = m2; for (const i of A) { const d = (pa.getX(i) - pb.getX(j)) ** 2 + (pa.getY(i) - pb.getY(j)) ** 2 + (pa.getZ(i) - pb.getZ(j)) ** 2; if (d < bd) { bd = d; best = i; } }
+    if (best >= 0) { pb.setXYZ(j, pa.getX(best), pa.getY(best), pa.getZ(best)); n++; } }
+  pb.needsUpdate = true; gb.computeVertexNormals(); return n;
+}
+export function seamPairs(ga, gb, eps = 1e-4) {
+  const pa = ga.attributes.position, pb = gb.attributes.position, key = (x, y, z) => `${Math.round(x / eps)},${Math.round(y / eps)},${Math.round(z / eps)}`, m = new Map(), A = [], B = [];
+  for (let i = 0; i < pa.count; i++) m.set(key(pa.getX(i), pa.getY(i), pa.getZ(i)), i);
+  for (let j = 0; j < pb.count; j++) { const i = m.get(key(pb.getX(j), pb.getY(j), pb.getZ(j))); if (i !== undefined) { A.push(i); B.push(j); } }
+  return { A, B, ga, gb };
+}
+export function fixSeam(sp) {
+  const na = sp.ga.attributes.normal, nb = sp.gb.attributes.normal; if (!na || !nb) return;
+  for (let k = 0; k < sp.A.length; k++) { const i = sp.A[k], j = sp.B[k]; let x = na.getX(i) + nb.getX(j), y = na.getY(i) + nb.getY(j), z = na.getZ(i) + nb.getZ(j); const L = Math.hypot(x, y, z) || 1; x /= L; y /= L; z /= L; na.setXYZ(i, x, y, z); nb.setXYZ(j, x, y, z); }
+  na.needsUpdate = nb.needsUpdate = true;
+}
 export function gridFloor(color = '#2dd4bf', size = 40, y = 0) {
   // piso de estudio: superficie mate oscura con luz central suave y una rejilla técnica muy tenue
   const m = new THREE.ShaderMaterial({

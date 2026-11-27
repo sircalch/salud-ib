@@ -1,5 +1,5 @@
 // Demo: Marcha paso a paso / Gait, step by step — pierna real (BodyParts3D) con cinemática normativa de la marcha
-import { createDemo, THREE, holoMesh, gridFloor, loadPack, xray, BP3D_CREDIT, clamp, lerp, smooth, lang } from '../core.js';
+import { createDemo, THREE, seamPairs, fixSeam, weldBorders, holoMesh, gridFloor, loadPack, xray, BP3D_CREDIT, clamp, lerp, smooth, lang } from '../core.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const C = { bone: '#f5e9cc', mus: '#ff6b6b', hip: '#fbbf24', knee: '#2dd4bf', ankle: '#a78bfa' };
@@ -86,6 +86,7 @@ createDemo({
   async build(c) {
     const { scene } = c;
     const [P, SK, PV] = await Promise.all([loadPack('knee', { center: [-80, -78, 405], scale: 1 / 190 }), loadPack('legskin', { center: [-80, -78, 405], scale: 1 / 190 }), loadPack('pelvis', { center: [-80, -78, 405], scale: 1 / 190 })]);
+    weldBorders(SK.geo.thigh, SK.geo.shank, .06);
     const G = P.geo, tmp = V(0, 0, 0);
     const pts = (geo, f) => { const a = geo.attributes.position, o = []; for (let i = 0; i < a.count; i++) { tmp.fromBufferAttribute(a, i); if (f(tmp)) o.push(tmp.clone()); } return o; };
     const avg = (arr) => arr.reduce((s, p) => s.add(p), V(0, 0, 0)).divideScalar(Math.max(1, arr.length));
@@ -142,6 +143,7 @@ createDemo({
         src.setAttribute('aBy', new THREE.Float32BufferAttribute(Float32Array.from({ length: sp.count }, (_, i) => sp.getY(i)), 1)); src.setAttribute('aBx', new THREE.Float32BufferAttribute(Float32Array.from({ length: sp.count }, (_, i) => sp.getX(i)), 1)); cutMat(skins[0].userData.real.material, -99, yT - .17, true);
         // contorno superior (en reposo) para la pretina común a las dos piernas
         topRing = []; for (let i = 0; i < n; i++) if (Math.abs(b[i * 3 + 1] - (yT - .15)) < .04) topRing.push(V(b[i * 3], yT, b[i * 3 + 2])); }
+      const seam = seamPairs(geos[0], geos[1], .004);
       const mT = new THREE.Matrix4(), mS = new THREE.Matrix4(), mF = new THREE.Matrix4(), v1 = V(0, 0, 0), v2 = V(0, 0, 0), v3 = V(0, 0, 0);
       const deformSkin = () => {
         leg.updateMatrixWorld(true); const inv = leg.matrixWorld.clone().invert();
@@ -150,6 +152,7 @@ createDemo({
           v1.set(b[i * 3], b[i * 3 + 1], b[i * 3 + 2]); v2.copy(v1); v3.copy(v1); v1.applyMatrix4(mT); v2.applyMatrix4(mS); v3.applyMatrix4(mF);
           a[i * 3] = v1.x * w[i * 3] + v2.x * w[i * 3 + 1] + v3.x * w[i * 3 + 2]; a[i * 3 + 1] = v1.y * w[i * 3] + v2.y * w[i * 3 + 1] + v3.y * w[i * 3 + 2]; a[i * 3 + 2] = v1.z * w[i * 3] + v2.z * w[i * 3 + 1] + v3.z * w[i * 3 + 2]; }
           D.pa.needsUpdate = true; D.geo.computeVertexNormals(); }
+        fixSeam(seam);
       };
       const pose = (x) => { pH.quaternion.setFromAxisAngle(ax, -curve('hip', x) * Math.PI / 180); pK0.quaternion.setFromAxisAngle(ax, curve('knee', x) * Math.PI / 180); pA.quaternion.setFromAxisAngle(ax, -curve('ankle', x) * Math.PI / 180); leg.updateMatrixWorld(true); };
       const bones = []; for (const g of [thigh, shankRaw, foot]) g.children.forEach((m) => { if (m.userData?.real?.material && !Object.values(M).flat().includes(m) && !skins.includes(m)) bones.push(m); });

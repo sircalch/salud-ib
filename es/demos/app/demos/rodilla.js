@@ -1,5 +1,5 @@
 // Demo: La rodilla como palanca / The knee as a lever — huesos y músculos reales (BodyParts3D)
-import { createDemo, THREE, holoMesh, glowMat, gridFloor, loadPack, realMat, arrow, xray, BP3D_CREDIT, clamp, lerp, smooth, lang } from '../core.js';
+import { createDemo, THREE, seamPairs, fixSeam, weldBorders, holoMesh, glowMat, gridFloor, loadPack, realMat, arrow, xray, BP3D_CREDIT, clamp, lerp, smooth, lang } from '../core.js';
 
 const C = { bone: '#f5e9cc', mus: '#ff6b6b', ten: '#f2e6cf', bw: '#fbbf24', quad: '#2dd4bf', pf: '#ff4d6d' };
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -86,15 +86,17 @@ createDemo({
       mk(shank, G.calf, C.mus, 'muscle', .06), mk(shank, G.fibLong, C.mus, 'muscle', .06)];
     // piel real de la pierna (dividida en la rodilla para que cada parte siga a su hueso)
     const SK = await loadPack('legskin', { center: [-80, -78, 405], scale: 1 / 190 });
+    weldBorders(SK.geo.thigh, SK.geo.shank, .06);
     // skinning lineal: cada vértice mezcla la rotación del muslo y de la pierna según su distancia a la rodilla
     const skins = ['thigh', 'shank'].map((k) => mk(leg, SK.geo[k], '#ffb38a', 'skin', .1, { side: THREE.DoubleSide }));
     const skinD = ['thigh', 'shank'].map((k) => { const pa = SK.geo[k].attributes.position, b = Float32Array.from(pa.array), w = new Float32Array(pa.count);
       for (let i = 0; i < pa.count; i++) w[i] = smooth(K.y - .14, K.y + .14, b[i * 3 + 1]); return { pa, b, w }; });
     const va = new THREE.Vector3(), vb = new THREE.Vector3();
+    const seam = seamPairs(SK.geo.thigh, SK.geo.shank, .004);
     c.state.skinDeform = (qT, qS) => { for (const D of skinD) { const a = D.pa.array, b = D.b; for (let i = 0; i < D.w.length; i++) {
       va.set(b[i * 3] - K.x, b[i * 3 + 1] - K.y, b[i * 3 + 2] - K.z); vb.copy(va); va.applyQuaternion(qT); vb.applyQuaternion(qS); const w = D.w[i];
       a[i * 3] = K.x + va.x * w + vb.x * (1 - w); a[i * 3 + 1] = K.y + va.y * w + vb.y * (1 - w); a[i * 3 + 2] = K.z + va.z * w + vb.z * (1 - w); } D.pa.needsUpdate = true; }
-      SK.geo.thigh.computeVertexNormals(); SK.geo.shank.computeVertexNormals(); shortsG?.computeVertexNormals(); };
+      SK.geo.thigh.computeVertexNormals(); SK.geo.shank.computeVertexNormals(); shortsG?.computeVertexNormals(); fixSeam(seam); };
     // short deportivo y corte limpio arriba: la piel del modelo termina irregular en la pelvis
     let shortsG = null;
     { const NL = String.fromCharCode(10), MID = (0 - (-80)) / 190;
