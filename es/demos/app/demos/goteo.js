@@ -1,5 +1,5 @@
 // Demo: Gota a gota / Drop by drop
-import { createDemo, THREE, holoMesh, holoMat, glowMat, pointsMat, gridFloor, realMat, loadPack, BP3D_CREDIT, clamp, lerp, smooth, lang } from '../core.js';
+import { createDemo, THREE, pillowGeo, pillowMat, holoMesh, holoMat, glowMat, pointsMat, gridFloor, realMat, loadPack, BP3D_CREDIT, clamp, lerp, smooth, lang } from '../core.js';
 
 const C = { bag: '#8fe3ff', fluid: '#38bdf8', drop: '#bff4ff', pole: '#94a3b8', clamp: '#facc15', line: '#7dd3fc' };
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -163,7 +163,7 @@ createDemo({
     board.position.set((ab.min.x + ab.max.x) / 2, bedTop - .4, bodyZ); board.receiveShadow = true; scene.add(board);
     const frameB = new THREE.Mesh(new THREE.BoxGeometry(ab.max.x - ab.min.x + .2, .18, 4.4), realMat('metal', { color: '#8b939c', roughness: .4 })); frameB.position.copy(board.position).add(V(0, -.5, 0)); scene.add(frameB);
     for (const x of [ab.min.x + .3, ab.max.x - .3]) for (const z of [-1.9, 1.9]) { const h = frameB.position.y - FLOOR; const leg = new THREE.Mesh(new THREE.CylinderGeometry(.06, .06, h, 12), realMat('metal', { color: '#9aa2ab' })); leg.position.set(x, FLOOR + h / 2, bodyZ + z); scene.add(leg); }
-    const pillow = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), new THREE.MeshPhysicalMaterial({ color: '#aeb9c2', roughness: .92, sheen: .2 })); pillow.scale.set(1.1, .28, 1.7); pillow.position.copy(pt.localToWorld(Lg(0, -40, 1590))).setY(bedTop + .12); pillow.receiveShadow = true; scene.add(pillow);
+    const pillow = new THREE.Mesh(pillowGeo(), pillowMat()); pillow.castShadow = true; pillow.scale.set(1.1, .28, 1.7); pillow.position.copy(pt.localToWorld(Lg(0, -40, 1590))).setY(bedTop + .12); pillow.receiveShadow = true; scene.add(pillow);
     // cobija sobre caderas y piernas (tapa el corte del modelo); los brazos quedan encima
     { const hipX = pt.localToWorld(Lg(0, 0, 905)).x, x0 = hipX + 1.25, x1 = ab.min.x + .1, zw = 150 * SCg, NX = 60, NZ = 40, pos = [], idx = [], uv = [];
       const hHip = pt.localToWorld(Lg(0, -230, 960)).y - bedTop + .06;

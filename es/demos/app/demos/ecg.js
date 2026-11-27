@@ -1,5 +1,5 @@
 // Demo: El electrocardiograma de 12 derivaciones / The 12-lead ECG — paciente con piel, costillas y corazón reales (BodyParts3D)
-import { createDemo, THREE, holoMesh, gridFloor, loadPack, realMat, xray, BP3D_CREDIT, clamp, lerp, smooth, lang, glowMat } from '../core.js';
+import { createDemo, THREE, drapeBlanket, pillowGeo, pillowMat, holoMesh, gridFloor, loadPack, realMat, xray, BP3D_CREDIT, clamp, lerp, smooth, lang, glowMat } from '../core.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const CEN = [0, -110, 1255], SC = 1 / 140;
@@ -144,20 +144,11 @@ createDemo({
     const matt = new THREE.Mesh(new THREE.BoxGeometry(14, 1.0, 5.6), new THREE.MeshPhysicalMaterial({ color: '#9fadb8', roughness: .92, sheen: .25, sheenColor: new THREE.Color('#d5dde3') })); matt.position.set(.6, -.38, 0); matt.receiveShadow = true; bed.add(matt);
     const frame = new THREE.Mesh(new THREE.BoxGeometry(14.4, .3, 6.0), realMat('metal', { color: '#8b939c', roughness: .4 })); frame.position.set(.6, -1.05, 0); bed.add(frame);
     for (const x of [-6.2, 7.4]) for (const z of [-2.6, 2.6]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, 3.4, 12), realMat('metal', { color: '#9aa2ab' })); leg.position.set(x, -2.8, z); bed.add(leg); }
-    const pillow = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), new THREE.MeshPhysicalMaterial({ color: '#aeb9c2', roughness: .92, sheen: .2 })); pillow.scale.set(1.3, .32, 2.0); pillow.position.copy(pt.localToWorld(L(0, -40, 1590))).setY(.12); pillow.receiveShadow = true; scene.add(pillow);
-    // pantalón (tapa el corte del modelo)
-    const cloth = new THREE.MeshPhysicalMaterial({ color: '#4d6b8a', roughness: .92, sheen: .45, sheenColor: new THREE.Color('#9fb6cf'), side: THREE.DoubleSide });
+    const pillow = new THREE.Mesh(pillowGeo(), pillowMat()); pillow.castShadow = true; pillow.scale.set(1.3, .32, 2.0); pillow.position.copy(pt.localToWorld(L(0, -40, 1590))).setY(.12); pillow.receiveShadow = true; scene.add(pillow);
+    // cobija sobre caderas y piernas: tapa el corte del modelo y sugiere las piernas debajo
+    { pt.updateMatrixWorld(true); const xw = pt.localToWorld(((z) => L(0, -110, z))(1110)).x, xh = pt.localToWorld(((z) => L(0, -110, z))(1590)).x, dirB = Math.sign(xw - xh);
+      scene.add(drapeBlanket(skin.userData.real, { bedTop: .12, x0: xw, x1: dirB > 0 ? 7.5 : -6.3, zc: pt.localToWorld(((z) => L(0, -110, z))(1100)).z, hipHalf: 150 * SC, torsoHalf: 172 * SC })); }
     const sp = UB.geo.skin.attributes.position, tv = V(0, 0, 0);
-    const ringAt = (zmm, grow, n = 80) => { const yLoc = L(0, 0, zmm).y, r = new Float32Array(n).fill(0); for (let i = 0; i < sp.count; i++) { tv.fromBufferAttribute(sp, i); if (Math.abs(tv.y - yLoc) > 22 * SC || Math.abs(tv.x) > 160 * SC) continue; const a = Math.atan2(tv.z, tv.x); const b = ((Math.round(a / (Math.PI * 2) * n) % n) + n) % n; r[b] = Math.max(r[b], Math.hypot(tv.x, tv.z)); }
-      for (let k = 0; k < 2; k++) for (let i = 0; i < n; i++) if (!r[i]) { let a = 1; while (!r[(i + a) % n] && a < n) a++; r[i] = r[(i + a) % n]; }
-      for (let k = 0; k < 5; k++) { const cp = r.slice(); for (let i = 0; i < n; i++) r[i] = Math.max(cp[i], (cp[(i + n - 1) % n] + 2 * cp[i] + cp[(i + 1) % n]) / 4); }
-      return Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return V(Math.cos(a) * (r[i] + grow), yLoc, Math.sin(a) * (r[i] + grow)); }); };
-    { const levels = [1012, 990, 965, 940, 915, 893].map((z) => ringAt(z, 14 * SC)); const last = levels[levels.length - 1];
-      for (let k = 1; k <= 8; k++) levels.push(last.map((p) => V(p.x * (1 - .012 * k), p.y - k * 70 * SC, p.z * (1 - .03 * k))));
-      const N = levels[0].length, g2 = new THREE.BufferGeometry(), pos = [], idx = []; levels.forEach((ring) => ring.forEach((p) => pos.push(p.x, p.y, p.z)));
-      for (let v = 0; v < levels.length - 1; v++) for (let i = 0; i < N; i++) { const a = v * N + i, b = v * N + (i + 1) % N, c2 = a + N, d = b + N; idx.push(a, c2, b, b, c2, d); }
-      g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setIndex(idx); g2.computeVertexNormals(); const m = new THREE.Mesh(g2, cloth); m.castShadow = m.receiveShadow = true; pt.add(m);
-      const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ringAt(1012, 16 * SC), true), 160, 6 * SC, 8, true), new THREE.MeshPhysicalMaterial({ color: '#2c3e52', roughness: .8 })); pt.add(band); }
     // ---- puntos de la piel ----
     const pick = (zmm, xmm, mode) => { const yL = L(0, 0, zmm).y, xL = xmm * SC; let best = -1, bd = -1e9;
       for (let i = 0; i < sp.count; i++) { tv.fromBufferAttribute(sp, i); if (Math.abs(tv.y - yL) > 7 * SC) continue;

@@ -220,6 +220,44 @@ export function holoMesh(geo, color, o = {}) {
 // Manga de tela ajustada a la piel real: anillos del contorno de la piel a lo largo de un eje, con holgura y dobladillo.
 // geo: geometría de la piel; p0: punto del eje; dir: dirección del eje (hacia donde sigue la manga);
 // from/to: tramo a cubrir sobre el eje; extra: cuánto se prolonga después de «to» (tapa cortes del modelo).
+// Almohada: planta rectangular redondeada, centro abultado, bordes delgados con costura y hueco donde apoya la cabeza.
+// Mide 2×2×2 en unidades locales (como una esfera de radio 1), así se escala igual que antes.
+export function pillowGeo(dent = .28) {
+  const g = new THREE.SphereGeometry(1, 72, 36), p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+    const rx = Math.sign(x) * Math.abs(x) ** .42, rz = Math.sign(z) * Math.abs(z) ** .42;
+    const puff = Math.pow(Math.max(0, 1 - rx * rx), .55) * Math.pow(Math.max(0, 1 - rz * rz), .55);
+    let yy = y * (.16 + .84 * puff);
+    if (y > 0) yy -= dent * puff * Math.exp(-(rx * rx) / .16 - (rz * rz) / .22) * y;
+    yy += .025 * Math.sin(rx * 9 + rz * 3) * Math.sin(rz * 7) * puff * Math.sign(y); // arrugas suaves de la tela
+    p.setXYZ(i, rx, yy, rz); }
+  g.computeVertexNormals(); return g;
+}
+// Cobija sobre caderas y piernas de un paciente acostado (eje del cuerpo = x del mundo; x0 = cintura, x1 = extremo de los pies).
+// Se apoya sobre el tronco (queda por encima) y por debajo de los brazos que descansan encima.
+export function drapeBlanket(skin, { bedTop, x0, x1, zc, hipHalf, torsoHalf, color = '#8497a8' }) {
+  skin.updateMatrixWorld(true);
+  const sp = skin.geometry.attributes.position, w = new THREE.Vector3(), CELL = .09, armLo = new Map(), trunkHi = new Map(), key = (x, z) => Math.round(x / CELL) + ',' + Math.round(z / CELL);
+  let top = -1e9; const dir = Math.sign(x1 - x0) || -1;
+  for (let i = 0; i < sp.count; i++) { w.fromBufferAttribute(sp, i).applyMatrix4(skin.matrixWorld); if ((w.x - x0) * dir < -.3) continue; const arm = Math.abs(w.z - zc) > torsoHalf;
+    if (!arm && (w.x - x0) * dir < 1.6) top = Math.max(top, w.y);
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const k = key(w.x + dx * CELL, w.z + dz * CELL); if (arm) armLo.set(k, Math.min(armLo.get(k) ?? 1e9, w.y)); else trunkHi.set(k, Math.max(trunkHi.get(k) ?? -1e9, w.y)); } }
+  const hHip = Math.max(.3, top - bedTop + .06), NX = 70, NZ = 44, pos = [], idx = [], zw = hipHalf, sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const height = (x, z, u) => { const prof = Math.max(0, 1 - (Math.abs(z) / (zw + .05)) ** 2.2), legs = 1 - .14 * Math.exp(-((z / (zw * .28)) ** 2)) * sm(.5, .7, u);
+    const hump = hHip * (1 - .45 * sm(.15, .7, u)) * (1 - sm(.9, 1.05, u)) * Math.pow(prof, .32) * legs;
+    const fold = (.018 * Math.sin(x * 2.3 + Math.sin(z * 3.1) * 1.7) + .01 * Math.sin(x * 5.1 - z * 1.3 + 1.7)) * Math.pow(prof, .5) * (1 - .6 * sm(.6, 1, Math.abs(z) / (zw + .05)));
+    let y = bedTop + .02 + Math.max(hump * 1.06 + .04 * Math.pow(prof, .3) + fold, 0); const kk = key(x, zc + z), th = trunkHi.get(kk), al = armLo.get(kk);
+    if (th !== undefined) y = Math.max(y, th + .035); if (al !== undefined && (th === undefined || al > th + .06)) y = Math.min(y, al - .02); return y; };
+  for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) { const u = i / NX, x = x0 + (x1 - x0) * u, z = (j / NZ - .5) * 2 * (zw + .45); pos.push(x, height(x, z, u), zc + z); }
+  for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) { const a = i * (NZ + 1) + j, b = a + NZ + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  const mat = new THREE.MeshPhysicalMaterial({ color, roughness: 1, sheen: .3, sheenRoughness: .8, sheenColor: new THREE.Color('#b9c9d6'), side: THREE.DoubleSide });
+  const grp = new THREE.Group(), bl = new THREE.Mesh(g, mat); bl.castShadow = bl.receiveShadow = true; grp.add(bl);
+  const edge = []; for (let j = 0; j <= 44; j++) { const z = (j / 44 - .5) * 2 * (zw + .45); edge.push(new THREE.Vector3(x0 - .02 * dir, height(x0, z, 0) + .03, zc + z)); }
+  const hem = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge), 80, .06, 10), mat); hem.castShadow = true; grp.add(hem);
+  return grp;
+}
+export const pillowMat = () => new THREE.MeshPhysicalMaterial({ color: '#b9c4ce', roughness: .9, sheen: .4, sheenRoughness: .7, sheenColor: new THREE.Color('#e8eef3') });
 export function fitSleeve(geo, p0, dir, from, to, o = {}) {
   const d = dir.clone().normalize(), e1 = new THREE.Vector3(1, 0, 0); if (Math.abs(d.x) > .9) e1.set(0, 1, 0); e1.addScaledVector(d, -e1.dot(d)).normalize(); const e2 = d.clone().cross(e1);
   const pa = geo.attributes.position, v = new THREE.Vector3(), N = o.segments ?? 72, steps = o.steps ?? 10, grow = o.grow ?? .02, slab = o.slab ?? (to - from) / steps;

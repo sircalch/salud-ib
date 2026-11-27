@@ -1,5 +1,5 @@
 // Demo: Dentro del ventilador / Inside the ventilator — pulmones reales (BodyParts3D) + ventilador mecánico simulado
-import { createDemo, THREE, holoMesh, gridFloor, loadPack, realMat, pointsMat, xray, BP3D_CREDIT, clamp, lerp, smooth, lang } from '../core.js';
+import { createDemo, THREE, drapeBlanket, pillowGeo, pillowMat, holoMesh, gridFloor, loadPack, realMat, pointsMat, xray, BP3D_CREDIT, clamp, lerp, smooth, lang } from '../core.js';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 // Modelo de un compartimento: Paw = PEEP + V/C + R·flujo (V en L, C en L/cmH2O, R en cmH2O·s/L)
@@ -90,19 +90,9 @@ createDemo({
     const frame = new THREE.Mesh(new THREE.BoxGeometry(14.4, .3, 6.0), realMat('metal', { color: '#8b939c', roughness: .4 })); frame.position.set(.6, -1.05, 0); scene.add(frame);
     for (const x of [-6.2, 7.4]) for (const z of [-2.6, 2.6]) { const leg = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, 3.4, 12), realMat('metal', { color: '#9aa2ab' })); leg.position.set(x, -2.8, z); scene.add(leg); }
     const rail = new THREE.Mesh(new THREE.BoxGeometry(5.5, .9, .08), realMat('plastic', { color: '#c9d0d6', roughness: .5 })); rail.position.set(2.4, .55, -2.9); scene.add(rail);
-    const pillow = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 16), new THREE.MeshPhysicalMaterial({ color: '#aeb9c2', roughness: .92, sheen: .2 })); pillow.scale.set(1.3, .32, 2.0); pillow.position.copy(torso.localToWorld(L(0, -40, 1590))).setY(.12); pillow.receiveShadow = true; scene.add(pillow);
-    // pantalón: tapa el corte del modelo en la cadera
-    { const cloth = new THREE.MeshPhysicalMaterial({ color: '#7d93a8', roughness: .92, sheen: .45, sheenColor: new THREE.Color('#b8c7d6'), side: THREE.DoubleSide });
-      const sp = UB.geo.skin.attributes.position, tv = V(0, 0, 0);
-      const ringAt = (zmm, grow, n = 80) => { const yLoc = L(0, 0, zmm).y, r = new Float32Array(n).fill(0); for (let i = 0; i < sp.count; i++) { tv.fromBufferAttribute(sp, i); if (Math.abs(tv.y - yLoc) > 22 * SC || Math.abs(tv.x) > 160 * SC) continue; const a = Math.atan2(tv.z, tv.x); const b = ((Math.round(a / (Math.PI * 2) * n) % n) + n) % n; r[b] = Math.max(r[b], Math.hypot(tv.x, tv.z)); }
-        for (let k = 0; k < 2; k++) for (let i = 0; i < n; i++) if (!r[i]) { let a = 1; while (!r[(i + a) % n] && a < n) a++; r[i] = r[(i + a) % n]; }
-        for (let k = 0; k < 5; k++) { const cp = r.slice(); for (let i = 0; i < n; i++) r[i] = Math.max(cp[i], (cp[(i + n - 1) % n] + 2 * cp[i] + cp[(i + 1) % n]) / 4); }
-        return Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return V(Math.cos(a) * (r[i] + grow), yLoc, Math.sin(a) * (r[i] + grow)); }); };
-      const levels = [1012, 990, 965, 940, 915, 893].map((z) => ringAt(z, 14 * SC)); const last = levels[levels.length - 1];
-      for (let k = 1; k <= 8; k++) levels.push(last.map((p) => V(p.x * (1 - .012 * k), p.y - k * 70 * SC, p.z * (1 - .03 * k))));
-      const N2 = levels[0].length, g2 = new THREE.BufferGeometry(), pos = [], idx = []; levels.forEach((ring) => ring.forEach((p) => pos.push(p.x, p.y, p.z)));
-      for (let v = 0; v < levels.length - 1; v++) for (let i = 0; i < N2; i++) { const a = v * N2 + i, b = v * N2 + (i + 1) % N2, c2 = a + N2, d = b + N2; idx.push(a, c2, b, b, c2, d); }
-      g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setIndex(idx); g2.computeVertexNormals(); const m = new THREE.Mesh(g2, cloth); m.castShadow = m.receiveShadow = true; torso.add(m); }
+    const pillow = new THREE.Mesh(pillowGeo(), pillowMat()); pillow.castShadow = true; pillow.scale.set(1.3, .32, 2.0); pillow.position.copy(torso.localToWorld(L(0, -40, 1590))).setY(.12); pillow.receiveShadow = true; scene.add(pillow);
+    // cobija sobre caderas y piernas: tapa el corte del modelo y sugiere las piernas debajo
+    torso.updateMatrixWorld(true); scene.add(drapeBlanket(skin.userData.real, { bedTop: .12, x0: torso.localToWorld(L(0, 0, 1110)).x, x1: 7.5, zc: torso.localToWorld(L(0, -110, 1100)).z, hipHalf: 150 * SC, torsoHalf: 172 * SC }));
     // ---- tubo endotraqueal con globo: boca → orofaringe → laringe → tráquea ----
     const tb = G.trachea.boundingBox, tTop = V((tb.min.x + tb.max.x) / 2, tb.max.y, (tb.min.z + tb.max.z) / 2), tBot = V(tTop.x, tb.min.y + 25 * SC, tTop.z);
     const mouth = L(0, -198, 1515);
