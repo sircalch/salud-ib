@@ -112,13 +112,14 @@ createDemo({
     hand.position.set(1.4 - db.max.x, .02 - (db.min.y + db.max.y) / 2, -(db.min.z + db.max.z) / 2);
     hand.updateMatrixWorld(true);
     skin.visible = false; // el dedo esculpido queda como respaldo oculto
+    let deskM = null;
     // antebrazo con manga de camisa ajustada, mesa a su altura y almohadilla bajo la palma
     { const ag = AP.geo.arm; ag.computeBoundingBox(); const top = ag.boundingBox.max.y, wristY = (835 - CEN[2]) / 20;
       hand.add(fitSleeve(ag, V(0, 0, 0), V(0, 1, 0), wristY + 1.6, top - .05, { grow: .22, hem: .28, extra: 5, color: '#8aa1b9', steps: 12 }));
       // inclinar todo el conjunto para que el antebrazo descanse horizontal (mano relajada, dedo un poco hacia abajo)
       rig.updateMatrixWorld(true); const pa0 = ag.attributes.position, cenY = (y0, y1) => { const c0 = V(0, 0, 0); let n = 0; for (let i = 0; i < pa0.count; i++) { const y = pa0.getY(i); if (y > y0 && y < y1) { c0.x += pa0.getX(i); c0.y += y; c0.z += pa0.getZ(i); n++; } } return hand.localToWorld(c0.multiplyScalar(1 / Math.max(1, n))); };
       const dir = cenY(top - 3, top - 1).sub(cenY(wristY + .5, wristY + 2.5));
-      let rz = Math.PI - Math.atan2(dir.y, dir.x); if (rz > Math.PI) rz -= Math.PI * 2; rz *= .5; rig.rotation.z = rz;
+      let rz = Math.PI - Math.atan2(dir.y, dir.x); if (rz > Math.PI) rz -= Math.PI * 2; rig.rotation.z = rz;
       // las cámaras de los capítulos giran igual, para conservar el encuadre del oxímetro
       const rot = (a2) => { const v = V(...a2).applyAxisAngle(V(0, 0, 1), rz); return v.toArray(); };
       for (const ch of chapters) if (ch.cam) ch.cam = { ...ch.cam, pos: rot(ch.cam.pos), target: rot(ch.cam.target) };
@@ -126,9 +127,7 @@ createDemo({
       const pa = ag.attributes.position, tv = V(0, 0, 0), palm = new THREE.Box3(); for (let i = 0; i < pa.count; i++) { tv.fromBufferAttribute(pa, i); if (tv.y < wristY - .4 && tv.y > wristY - 4.5) palm.expandByPoint(hand.localToWorld(tv.clone())); }
       const deskY = hb.min.y - .02; floorM.position.y = deskY - 3;
       const desk = new THREE.Mesh(new THREE.BoxGeometry(80, .6, 50), new THREE.MeshPhysicalMaterial({ color: '#b9c3cb', roughness: .88, sheen: .3, sheenColor: new THREE.Color('#eef2f5') })); desk.position.set(-10, deskY - .3, 0); desk.receiveShadow = true; scene.add(desk);
-      const ch = Math.max(.2, palm.min.y - deskY - .02), cw = Math.max(2, palm.max.x - palm.min.x) + 1.2, cd = Math.max(2, palm.max.z - palm.min.z) + 1.2;
-      const cushion = new THREE.Mesh(new THREE.CapsuleGeometry(ch / 2, Math.max(.1, cd - ch), 8, 24), new THREE.MeshPhysicalMaterial({ color: '#dfe5ea', roughness: .9, sheen: .6, sheenColor: new THREE.Color('#ffffff') }));
-      cushion.rotation.x = Math.PI / 2; cushion.position.set((palm.min.x + palm.max.x) / 2, deskY + ch / 2, (palm.min.z + palm.max.z) / 2); cushion.castShadow = cushion.receiveShadow = true; scene.add(cushion); }
+      deskM = desk; }
     // uña sobre el dorso de la falange distal
     const db2 = new THREE.Box3().setFromObject(bones.children[2]);
     [nail, nailPolish].forEach((n) => { n.position.set(db2.max.x - .3, db2.max.y + .1, (db2.min.z + db2.max.z) / 2); n.scale.set(.5, .07, .38); n.rotation.z = -.05; });
@@ -188,6 +187,15 @@ createDemo({
 
     const artColor = new THREE.Color(); const cOx = new THREE.Color('#ff2b45'), cDe = new THREE.Color('#6a2bd9');
     let scrT = 0, alt = 0, estSm = 97, rSm = .5;
+    // la mesa no debe atravesar el oxímetro (el dedo queda algo flexionado hacia abajo)
+    { rig.updateMatrixWorld(true); const cb = new THREE.Box3().setFromObject(clip, true), top = deskM.position.y + .3; if (cb.min.y < top) { const dy = top - cb.min.y + .02; deskM.position.y -= dy; floorM.position.y -= dy; } }
+    // almohadilla de apoyo bajo el antebrazo: su cara superior sigue la parte de abajo del brazo real
+    { const ag = AP.geo.arm, pa = ag.attributes.position, tv = V(0, 0, 0), top = ag.boundingBox.max.y, wristY = (835 - CEN[2]) / 20, under = (y0, y1) => { let lo = null; for (let i = 0; i < pa.count; i++) { const y = pa.getY(i); if (y < y0 || y > y1) continue; const w = hand.localToWorld(tv.fromBufferAttribute(pa, i).clone()); if (!lo || w.y < lo.y) lo = w; } return lo; };
+      const p0 = under(wristY + .5, wristY + 2), p1 = under(top - 3, top - .5), deskTop = deskM.position.y + .3;
+      if (p0 && p1) { const len = p0.distanceTo(p1) + 4, ang = Math.atan2(p1.y - p0.y, p1.x - p0.x), mid = p0.clone().lerp(p1, .5), hgt = Math.max(.4, mid.y - deskTop) + 1.2;
+        const sh = new THREE.Shape(), w = len, h = hgt, r = .5; sh.moveTo(-w / 2 + r, -h); sh.lineTo(w / 2 - r, -h); sh.quadraticCurveTo(w / 2, -h, w / 2, -h + r); sh.lineTo(w / 2, -r); sh.quadraticCurveTo(w / 2, 0, w / 2 - r, 0); sh.lineTo(-w / 2 + r, 0); sh.quadraticCurveTo(-w / 2, 0, -w / 2, -r); sh.lineTo(-w / 2, -h + r); sh.quadraticCurveTo(-w / 2, -h, -w / 2 + r, -h);
+        const g = new THREE.ExtrudeGeometry(sh, { depth: 4.2, bevelEnabled: true, bevelThickness: .25, bevelSize: .25, bevelSegments: 4, curveSegments: 8 }); g.translate(0, 0, -2.1);
+        const pad = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({ color: '#7d9db8', roughness: .8, sheen: .5, sheenColor: new THREE.Color('#c9dbea') })); pad.position.set(mid.x, mid.y - .05, mid.z); pad.rotation.z = ang + (p1.x < p0.x ? Math.PI : 0); pad.castShadow = pad.receiveShadow = true; scene.add(pad); } }
     c.onFrame((dt, rdt) => {
       S.ph = (S.ph + dt * S.hr / 60) % 1;
       const p = pleth(S.ph);
