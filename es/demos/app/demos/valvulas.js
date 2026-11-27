@@ -68,7 +68,7 @@ createDemo({
     const box = [[-75, -215, 1150], [120, -30, 1365]];
     const [H, VP, CH] = await Promise.all([
       loadPack('heart', { center: CEN, scale: SC, crop: { aorta: [[-40, -200, 1150], [70, -40, 1360]], ivc: [[-60, -200, 1150], [40, -40, 1260]], pulmArtery: [[-30, -175, 1225], [88, -60, 1345]], pulmVeins: [[-25, -150, 1195], [80, -55, 1290]], svc: box } }),
-      loadPack('valves', { center: CEN, scale: SC }), loadPack('chest', { center: CEN, scale: SC })]);
+      loadPack('valves', { center: CEN, scale: SC }), loadPack('body', { center: CEN, scale: SC })]);
     const toT = (x, y, z) => V((x - CEN[0]) * SC, (z - CEN[2]) * SC, -(y - CEN[1]) * SC);
     const heart = new THREE.Group(); scene.add(heart);
     const add = (geo, color, real, opts = {}, ghost = .08) => { const m = holoMesh(geo, color, { real, realOpts: opts, ghost, opacity: .015, rim: .45, intensity: .75, edges: false }); heart.add(m); return m; };
@@ -110,7 +110,6 @@ createDemo({
     valves.aortic = { grp: aoG, mesh: { material: aoMat }, ctr: aoRoot };
     // piel del tórax con los focos
     const chest = holoMesh(CH.geo.skin, '#ffb38a', { real: 'skin', realOpts: { side: THREE.DoubleSide }, ghost: .22, opacity: .01, rim: .35, intensity: .6, edges: false }); scene.add(chest);
-    chest.userData.real.material.clippingPlanes = [new THREE.Plane(V(0, 1, 0), 2.04), new THREE.Plane(V(0, -1, 0), 3.84), new THREE.Plane(V(1, 0, 0), 4.48), new THREE.Plane(V(-1, 0, 0), 3.52)]; // cortes rectos
     const sp = CH.geo.skin.attributes.position, tv = V(0, 0, 0);
     const surf = (xmm, zmm) => { const tgt = toT(xmm, -120, zmm); let best = null, bd = 1e9; for (let i = 0; i < sp.count; i++) { tv.fromBufferAttribute(sp, i); const d = (tv.x - tgt.x) ** 2 + (tv.y - tgt.y) ** 2 - tv.z * .02; if (d < bd) { bd = d; best = tv.clone(); } } return best; };
     const markers = {};

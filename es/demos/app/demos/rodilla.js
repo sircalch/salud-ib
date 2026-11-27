@@ -77,10 +77,10 @@ createDemo({
     pivotT.position.copy(K); pivotS.position.copy(K); leg.add(pivotT, pivotS); pivotT.add(thigh); pivotS.add(shank);
     thigh.position.copy(K).negate(); shank.position.copy(K).negate();
     const mk = (parent, geo, color, real, ghost, opts) => { const m = holoMesh(geo, color, { real, realOpts: opts, ghost, opacity: .015, rim: .45, intensity: .75, edges: false }); parent.add(m); return m; };
-    mk(thigh, G.femur, C.bone, 'bone', .9);
+    const bones = [mk(thigh, G.femur, C.bone, 'bone', .9)];
     const muscles = ['rectus', 'vlat', 'vmed', 'vint'].map((k) => mk(thigh, G[k], C.mus, 'muscle', .08));
-    mk(shank, G.tibia, C.bone, 'bone', .9); mk(shank, G.fibula, C.bone, 'bone', .9); const tibA = mk(shank, G.tibAnt, C.mus, 'muscle', .08);
-    mk(shank, G.foot, C.bone, 'bone', .9);
+    bones.push(mk(shank, G.tibia, C.bone, 'bone', .9), mk(shank, G.fibula, C.bone, 'bone', .9)); const tibA = mk(shank, G.tibAnt, C.mus, 'muscle', .08);
+    bones.push(mk(shank, G.foot, C.bone, 'bone', .9));
     // músculos posteriores y mediales (dan volumen real a la pierna)
     const back = [mk(thigh, G.hamstrings, C.mus, 'muscle', .06), mk(thigh, G.medial, C.mus, 'muscle', .06),
       mk(shank, G.calf, C.mus, 'muscle', .06), mk(shank, G.fibLong, C.mus, 'muscle', .06)];
@@ -94,12 +94,41 @@ createDemo({
     c.state.skinDeform = (qT, qS) => { for (const D of skinD) { const a = D.pa.array, b = D.b; for (let i = 0; i < D.w.length; i++) {
       va.set(b[i * 3] - K.x, b[i * 3 + 1] - K.y, b[i * 3 + 2] - K.z); vb.copy(va); va.applyQuaternion(qT); vb.applyQuaternion(qS); const w = D.w[i];
       a[i * 3] = K.x + va.x * w + vb.x * (1 - w); a[i * 3 + 1] = K.y + va.y * w + vb.y * (1 - w); a[i * 3 + 2] = K.z + va.z * w + vb.z * (1 - w); } D.pa.needsUpdate = true; }
-      SK.geo.thigh.computeVertexNormals(); SK.geo.shank.computeVertexNormals(); };
+      SK.geo.thigh.computeVertexNormals(); SK.geo.shank.computeVertexNormals(); shortsG?.computeVertexNormals(); };
+    // short deportivo y corte limpio arriba: la piel del modelo termina irregular en la pelvis
+    let shortsG = null;
+    { const NL = String.fromCharCode(10), MID = (0 - (-80)) / 190;
+      const src = SK.geo.thigh, sp = src.attributes.position, ix = src.index.array; let yMax = -1e9; for (let i = 0; i < sp.count; i++) yMax = Math.max(yMax, sp.getY(i));
+      const yT = yMax - .16, yS = K.y + (yT - K.y) * .5;
+      const cutMat = (m, lo, hi, groin) => { m.onBeforeCompile = (sh) => { sh.vertexShader = 'attribute float aBy;' + NL + 'attribute float aBx;' + NL + 'varying float vBy;' + NL + 'varying float vBx;' + NL + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>' + NL + 'vBy = aBy; vBx = aBx;');
+        sh.fragmentShader = 'varying float vBy;' + NL + 'varying float vBx;' + NL + sh.fragmentShader.replace('void main() {', 'void main() {' + NL + ` if (vBy < ${lo.toFixed(4)} || vBy > ${hi.toFixed(4)}) discard;` + (groin ? ` if (vBy > ${yS.toFixed(4)} && vBx > ${(MID - .16).toFixed(4)}) discard;` : '')); };
+        m.customProgramCacheKey = () => `kcut${lo.toFixed(3)}_${hi.toFixed(3)}_${groin ? 1 : 0}`; m.needsUpdate = true; };
+      src.setAttribute('aBy', new THREE.Float32BufferAttribute(Float32Array.from({ length: sp.count }, (_, i) => sp.getY(i)), 1));
+      src.setAttribute('aBx', new THREE.Float32BufferAttribute(Float32Array.from({ length: sp.count }, (_, i) => sp.getX(i)), 1));
+      cutMat(skins[0].userData.real.material, -99, yT, true);
+      const bins = new Map(), bk = (y) => Math.round(y / .03); for (let i = 0; i < sp.count; i++) { const k = bk(sp.getY(i)); const b = bins.get(k) || [0, 0, 0]; b[0] += sp.getX(i); b[1] += sp.getZ(i); b[2]++; bins.set(k, b); }
+      const map = new Map(), pos = [], byA = [], keep = [], OFF = .034;
+      for (let f = 0; f < ix.length; f += 3) { const ys = [sp.getY(ix[f]), sp.getY(ix[f + 1]), sp.getY(ix[f + 2])]; if (Math.max(...ys) < yS - .02 || Math.min(...ys) > yT + .04) continue;
+        for (let k = 0; k < 3; k++) { const o = ix[f + k]; if (!map.has(o)) { map.set(o, pos.length / 3); const b = bins.get(bk(sp.getY(o))); const dx = sp.getX(o) - b[0] / b[2], dz = sp.getZ(o) - b[1] / b[2], Ln = Math.hypot(dx, dz) || 1; pos.push(sp.getX(o) + dx / Ln * OFF, sp.getY(o), sp.getZ(o) + dz / Ln * OFF); byA.push(sp.getY(o)); } keep.push(map.get(o)); } }
+      shortsG = new THREE.BufferGeometry(); shortsG.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); shortsG.setAttribute('aBy', new THREE.Float32BufferAttribute(byA, 1)); shortsG.setAttribute('aBx', new THREE.Float32BufferAttribute(new Float32Array(byA.length), 1)); shortsG.setIndex(keep); shortsG.computeVertexNormals();
+      const cloth = new THREE.MeshPhysicalMaterial({ color: '#1f2a3a', roughness: .72, sheen: .6, sheenColor: new THREE.Color('#5a6f8f'), side: THREE.DoubleSide }); cutMat(cloth, yS, yT, false);
+      const shorts = new THREE.Mesh(shortsG, cloth); shorts.castShadow = true; leg.add(shorts); skins.push(shorts);
+      const pa = shortsG.attributes.position; skinD.push({ pa, b: Float32Array.from(pa.array), w: new Float32Array(pa.count).fill(1) });
+      // tapa y pretina siguiendo el contorno real a esa altura (giran con el muslo)
+      const ring = []; for (let i = 0; i < pa.count; i++) if (Math.abs(pa.getY(i) - yT) < .03) ring.push({ x: pa.getX(i), z: pa.getZ(i) });
+      if (ring.length > 8) { const pts2 = ring.sort((a2, b2) => a2.x - b2.x || a2.z - b2.z), cr = (o, a2, b2) => (a2.x - o.x) * (b2.z - o.z) - (a2.z - o.z) * (b2.x - o.x), lo = [], hi = [];
+        for (const q of pts2) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+        for (let i = pts2.length - 1; i >= 0; i--) { const q = pts2[i]; while (hi.length >= 2 && cr(hi[hi.length - 2], hi[hi.length - 1], q) <= 0) hi.pop(); hi.push(q); }
+        const hull = lo.slice(0, -1).concat(hi.slice(0, -1)); const rg = new THREE.CatmullRomCurve3(hull.map((q) => V(q.x, yT - .01, q.z)), true, 'centripetal').getSpacedPoints(96);
+        const plain = new THREE.MeshPhysicalMaterial({ color: '#1f2a3a', roughness: .72, sheen: .6, sheenColor: new THREE.Color('#5a6f8f'), side: THREE.DoubleSide });
+        const c0 = rg.reduce((a2, q) => a2.add(q), V(0, 0, 0)).divideScalar(rg.length);
+        const cap = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(rg.map((q) => new THREE.Vector2(q.x - c0.x, -(q.z - c0.z))))), plain); cap.rotation.x = -Math.PI / 2; cap.position.copy(c0); thigh.add(cap);
+        const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rg, true), 120, .032, 8, true), new THREE.MeshPhysicalMaterial({ color: '#141b26', roughness: .6 })); thigh.add(band); skins.push(cap, band); } }
     const allMuscles = () => [...muscles, ...back, tibA];
-    c.state.applyLayer = () => { const L = S.layer; skins.forEach((m) => (m.visible = L === 'skin')); allMuscles().forEach((m) => (m.visible = L !== 'bone')); };
+    c.state.applyLayer = () => { const L = S.layer, xr = xray.k > .05; skins.forEach((m) => (m.visible = L === 'skin')); allMuscles().forEach((m) => (m.visible = L === 'muscle' || (L === 'skin' && xr))); bones.forEach((m) => (m.visible = L !== 'skin' || xr)); };
     c.state.applyLayer();
     const patGroup = new THREE.Group(), pivotP = new THREE.Group(); pivotP.position.copy(K); leg.add(pivotP); pivotP.add(patGroup); patGroup.position.copy(K).negate();
-    const patella = mk(patGroup, G.patella, C.bone, 'bone', .9);
+    const patella = mk(patGroup, G.patella, C.bone, 'bone', .9); bones.push(patella);
     // pie simple y escalón
 
     const stepTop = ankle.y - .36;
@@ -130,7 +159,7 @@ createDemo({
       if (angSlider && c.chapter() === 2) S.target = +angSlider.input.value;
       S.theta = lerp(S.theta, S.target, 1 - Math.exp(-rdt * (S.holding ? 2.2 : 3)));
       const th = S.theta * Math.PI / 180;
-      pivotT.quaternion.setFromAxisAngle(ax, -th / 2); pivotS.quaternion.setFromAxisAngle(ax, th / 2); if (S.layer === 'skin' || xray.k > .05) c.state.skinDeform?.(pivotT.quaternion, pivotS.quaternion); pivotP.quaternion.setFromAxisAngle(ax, -th * .1);
+      pivotT.quaternion.setFromAxisAngle(ax, -th / 2); pivotS.quaternion.setFromAxisAngle(ax, th / 2); if (S.layer === 'skin' || xray.k > .05) c.state.skinDeform?.(pivotT.quaternion, pivotS.quaternion); if (S.layer === 'skin') c.state.applyLayer(); pivotP.quaternion.setFromAxisAngle(ax, -th * .1);
             leg.updateMatrixWorld(true);
       const W = (obj, p) => leg.worldToLocal(obj.localToWorld(p.clone()));
       const pc = W(patGroup, patC), qb = W(thigh, quadBottom), tub = W(shank, tuberosity), kL = K.clone(), hipL = W(thigh, hip);
