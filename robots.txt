@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://sircalch.github.io/salud-ib/sitemap.xml
