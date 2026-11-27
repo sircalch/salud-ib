@@ -155,10 +155,14 @@ function tintTex(c1, c2, streak = 6) {
   const key = c1 + c2 + streak; if (_tints[key]) return _tints[key];
   const src = noiseTex().image, n = src.width, c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d');
   g.drawImage(src, 0, 0); const d = g.getImageData(0, 0, n, n), A = new THREE.Color(c1), B = new THREE.Color(c2);
+  let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647); const cells = streak > 0 ? [] : Array.from({ length: 70 }, () => [rnd() * n, rnd() * n]);
   for (let i = 0; i < n * n; i++) {
     const x = i % n, y = (i / n) | 0, v = d.data[i * 4] / 255;
-    const st = .5 + .5 * Math.sin((y / n) * Math.PI * 2 * streak + v * 9 + x / n * 3);
-    const k = Math.min(1, Math.max(0, v * .7 + st * .45 - .15));
+    // streak > 0: fibras (músculo); streak 0: superficie moteada con lobulillos (pulmón), sin franjas
+    let k;
+    if (streak > 0) { const st = .5 + .5 * Math.sin((y / n) * Math.PI * 2 * streak + v * 9 + x / n * 3); k = Math.min(1, Math.max(0, v * .7 + st * .45 - .15)); }
+    else { let d1 = 1e9, d2 = 1e9; for (const [px, py] of cells) { let dx = Math.abs(x - px), dy = Math.abs(y - py); dx = Math.min(dx, n - dx); dy = Math.min(dy, n - dy); const d = Math.hypot(dx, dy); if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; }
+      const edge = Math.max(0, 1 - (d2 - d1) / 2.2); k = Math.min(1, Math.max(0, .42 + (v - .5) * .9 - edge * .32)); }
     d.data[i * 4] = (A.r + (B.r - A.r) * k) * 255; d.data[i * 4 + 1] = (A.g + (B.g - A.g) * k) * 255; d.data[i * 4 + 2] = (A.b + (B.b - A.b) * k) * 255;
   }
   g.putImageData(d, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 2); _tints[key] = t; return t;
@@ -168,7 +172,7 @@ const PRESETS = {
   artery: { color: '#a3172b', roughness: .38, clearcoat: .6, clearcoatRoughness: .3, bump: .3 },
   vein: { color: '#3a3f8c', roughness: .4, clearcoat: .5, bump: .3 },
   fat: { color: '#e3c27a', roughness: .6, sheen: .4, sheenColor: '#fff2c4', bump: 1.2 },
-  lung: { color: '#ffffff', tint: ['#b8676f', '#f0b1b4', 14], roughness: .78, sheen: .7, sheenColor: '#ffe4e6', bump: 2.2 },
+  lung: { color: '#ffffff', tint: ['#a85a64', '#eab0b2', 0], roughness: .78, sheen: .7, sheenColor: '#ffe4e6', bump: 2.2 },
   diaphragm: { color: '#ffffff', tint: ['#7d1f27', '#b8474f', 18], roughness: .5, clearcoat: .3, sheen: .5, sheenColor: '#ff9a9a', bump: 1 },
   skin: { color: '#ffffff', tint: ['#b98269', '#d8a68e', 3], roughness: .58, sheen: .45, sheenColor: '#f3cdb8', clearcoat: .06, clearcoatRoughness: .5, bump: .35 },
   nail: { color: '#efcfc4', roughness: .22, clearcoat: 1, bump: .1 },

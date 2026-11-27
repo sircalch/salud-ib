@@ -189,12 +189,12 @@ createDemo({
     const padR = mkPad(PR, 'R', 0), padL = mkPad(PLft, 'L', -.35);
     // ---- DEA ----
     const aed = new THREE.Group(); scene.add(aed); aed.position.set(-3.3, 0, 1.7); aed.rotation.y = .55;
-    const shell = new THREE.Mesh(roundedBox(2.0, .5, 1.5, .14), realMat('plastic', { color: '#1f9d55', roughness: .45, clearcoat: .5 })); shell.position.y = .25; shell.rotation.x = Math.PI / 2; shell.castShadow = true; aed.add(shell);
-    const faceP = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.25), new THREE.MeshStandardMaterial({ map: faceTexture(), roughness: .6 })); faceP.rotation.x = -Math.PI / 2; faceP.position.y = .505; aed.add(faceP);
+    const shell = new THREE.Mesh(roundedBox(2.0, .5, 1.5, .14), realMat('plastic', { color: '#17804a', roughness: .62, clearcoat: .15, clearcoatRoughness: .6 })); shell.position.y = .25; shell.rotation.x = Math.PI / 2; shell.castShadow = true; aed.add(shell);
+    const faceP = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.25), new THREE.MeshStandardMaterial({ map: faceTexture(), color: '#c4c9ce', roughness: .8 })); faceP.rotation.x = -Math.PI / 2; faceP.position.y = .505; aed.add(faceP);
     const handle = new THREE.Mesh(new THREE.TorusGeometry(.32, .07, 14, 32, Math.PI), realMat('plasticDark', { color: '#1a1e23' })); handle.position.set(0, .26, -.82); handle.rotation.set(0, 0, 0); aed.add(handle);
     // pantalla
     const scr = document.createElement('canvas'); scr.width = 512; scr.height = 300; const sg = scr.getContext('2d'); const scrTex = new THREE.CanvasTexture(scr); scrTex.colorSpace = THREE.SRGBColorSpace;
-    const screen = new THREE.Mesh(new THREE.PlaneGeometry(.78, .46), new THREE.MeshBasicMaterial({ map: scrTex, toneMapped: false })); screen.rotation.x = -Math.PI / 2; screen.position.set(-.35, .508, -.22); aed.add(screen);
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(.78, .46), new THREE.MeshBasicMaterial({ map: scrTex, color: '#c9d6cf' })); screen.rotation.x = -Math.PI / 2; screen.position.set(-.35, .508, -.22); aed.add(screen);
     const bezel = new THREE.Mesh(roundedBox(.86, .54, .04, .02, 3), realMat('plasticDark', { color: '#15181c' })); bezel.rotation.x = -Math.PI / 2; bezel.position.set(-.35, .49, -.22); aed.add(bezel);
     // botones
     const mkBtn = (r, col, x, z, icon) => { const b = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 1.05, .07, 40), realMat('plastic', { color: col, roughness: .35, clearcoat: .6, emissive: col, emissiveIntensity: 0 })); b.position.set(x, .52, z); aed.add(b);
