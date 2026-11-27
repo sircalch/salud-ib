@@ -167,16 +167,21 @@ createDemo({
     // cobija sobre caderas y piernas (tapa el corte del modelo); los brazos quedan encima
     { const hipX = pt.localToWorld(Lg(0, 0, 905)).x, x0 = hipX + 1.25, x1 = ab.min.x + .1, zw = 150 * SCg, NX = 60, NZ = 40, pos = [], idx = [], uv = [];
       const hHip = pt.localToWorld(Lg(0, -230, 960)).y - bedTop + .06;
+      // mapas de altura de la piel: el tronco queda debajo de la cobija y los brazos encima
+      const CELL = .09, armLo = new Map(), trunkHi = new Map(), key = (x, z) => Math.round(x / CELL) + ',' + Math.round(z / CELL), wv = V(0, 0, 0);
+      for (let i = 0; i < bsp.count; i++) { tv.fromBufferAttribute(bsp, i); const arm = Math.abs(tv.x) > 170 * SCg; wv.copy(tv); pt.localToWorld(wv); if (wv.x > x0 + .3) continue;
+        for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const k = key(wv.x + dx * CELL, wv.z + dz * CELL); if (arm) armLo.set(k, Math.min(armLo.get(k) ?? 1e9, wv.y)); else trunkHi.set(k, Math.max(trunkHi.get(k) ?? -1e9, wv.y)); } }
       for (let i = 0; i <= NX; i++) for (let j = 0; j <= NZ; j++) { const u = i / NX, w = j / NZ, x = lerp(x0, x1, u), z = (w - .5) * 2 * (zw + .42);
-        const prof = Math.max(0, 1 - (Math.abs(z) / (zw + .05)) ** 2.2), hump = hHip * (1 - .45 * smooth(.15, .7, u)) * (1 - smooth(.86, 1, u)) * Math.sqrt(prof);
-        const fold = .025 * Math.sin(x * 7 + z * 2) * prof + .012 * Math.sin(z * 9 + x * 3) * prof;
-        const y = bedTop + .02 + Math.max(hump + fold, 0);
+        const prof = Math.max(0, 1 - (Math.abs(z) / (zw + .05)) ** 2.2), legs = 1 - .14 * Math.exp(-((z / (zw * .28)) ** 2)) * smooth(.5, .7, u), hump = hHip * (1 - .45 * smooth(.15, .7, u)) * (1 - smooth(.86, 1, u)) * Math.pow(prof, .32) * legs;
+        const fold = (.018 * Math.sin(x * 2.3 + Math.sin(z * 3.1) * 1.7) + .01 * Math.sin(x * 5.1 - z * 1.3 + 1.7)) * Math.pow(prof, .5) * (1 - .6 * smooth(.6, 1, Math.abs(z) / (zw + .05)));
+        let y = bedTop + .02 + Math.max(hump * 1.06 + .04 * Math.pow(prof, .3) + fold, 0); const kk = key(x, bodyZ + z), th = trunkHi.get(kk), al = armLo.get(kk);
+        if (th !== undefined) y = Math.max(y, th + .035); if (al !== undefined && (th === undefined || al > th + .06)) y = Math.min(y, al - .02);
         pos.push(x, y, bodyZ + z); uv.push(u * 4, w * 2); }
       for (let i = 0; i < NX; i++) for (let j = 0; j < NZ; j++) { const a = i * (NZ + 1) + j, b = a + NZ + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
-      const blanket = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({ color: '#8fb3cf', roughness: .95, sheen: .7, sheenColor: new THREE.Color('#dbe8f3'), side: THREE.DoubleSide })); blanket.castShadow = blanket.receiveShadow = true; scene.add(blanket);
+      const blanket = new THREE.Mesh(g, new THREE.MeshPhysicalMaterial({ color: '#8497a8', roughness: 1, sheen: .3, sheenRoughness: .8, sheenColor: new THREE.Color('#b9c9d6'), side: THREE.DoubleSide })); blanket.castShadow = blanket.receiveShadow = true; scene.add(blanket);
       // borde doblado de la cobija
-      const edge = []; for (let j = 0; j <= 40; j++) { const k = j / 40, z = (k - .5) * 2 * (zw + .42); const prof = Math.max(0, 1 - (Math.abs(z) / (zw + .05)) ** 2.2); edge.push(V(x0 + .02, bedTop + .05 + Math.max(0, hHip * Math.sqrt(prof)), bodyZ + z)); }
+      const edge = []; for (let j = 0; j <= 40; j++) { const k = j / 40, z = (k - .5) * 2 * (zw + .42); const prof = Math.max(0, 1 - (Math.abs(z) / (zw + .05)) ** 2.2); edge.push(V(x0 + .02, bedTop + .05 + Math.max(0, hHip * Math.pow(prof, .32)), bodyZ + z)); }
       const hem = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(edge), 80, .06, 10), blanket.material); hem.castShadow = true; scene.add(hem); }
     // cánula periférica con alas y apósito transparente
     const can = new THREE.Group(); can.position.copy(target); scene.add(can);

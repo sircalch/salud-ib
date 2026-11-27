@@ -178,7 +178,7 @@ const PRESETS = {
   nail: { color: '#efcfc4', roughness: .22, clearcoat: 1, bump: .1 },
   bone: { color: '#ffffff', tint: ['#a8977a', '#cdbf9f', 3], roughness: .68, bump: 1.1 },
   cartilage: { color: '#c9b4aa', roughness: .4, clearcoat: .5, bump: .3 },
-  tendon: { color: '#c8b89c', roughness: .48, sheen: .3, sheenColor: '#f3ead8', bump: .5 },
+  tendon: { color: '#b3a07f', roughness: .42, sheen: .5, sheenColor: '#efe4cc', bump: .6 },
   plastic: { color: '#b9c0c8', roughness: .55, clearcoat: .25, clearcoatRoughness: .4 },
   plasticDark: { color: '#2a313c', roughness: .38, clearcoat: .4 },
   plasticTint: { color: '#38bdf8', roughness: .45, clearcoat: .2, clearcoatRoughness: .5 },

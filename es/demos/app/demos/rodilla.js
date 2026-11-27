@@ -139,8 +139,14 @@ createDemo({
     const rb = G.rectus.boundingBox, rH = rb.max.y - rb.min.y;
     const quadBottom = avg(pts(G.rectus, (p) => p.y > patC.y + .25 && p.y < patC.y + .45));
     const tendonMat = realMat('tendon');
-    const tendon = (rTop, rBot) => { const g = new THREE.CylinderGeometry(rTop, rBot, 1, 24, 4); g.scale(1.9, 1, .55); const m = new THREE.Mesh(g, tendonMat); m.castShadow = true; leg.add(m); return m; }; // banda plana que se estrecha
-    const qt = tendon(.034, .05), pt = tendon(.024, .03);
+    const tendon = (rTop, rBot) => { // banda ovalada que se afina y se funde en los extremos (sin tapas planas)
+      const NR = 28, NA = 28, pos = [], idx = [];
+      for (let i = 0; i <= NR; i++) { const t = i / NR, cap = Math.pow(Math.max(0, 1 - Math.pow(2 * t - 1, 6)), .5), r = (rBot + (rTop - rBot) * t) * cap, bow = Math.sin(Math.PI * t) * .012;
+        for (let j = 0; j < NA; j++) { const a2 = j / NA * Math.PI * 2; pos.push(Math.cos(a2) * r * 1.9, t - .5, Math.sin(a2) * r * .38 + bow); } }
+      for (let i = 0; i < NR; i++) for (let j = 0; j < NA; j++) { const a2 = i * NA + j, b2 = i * NA + (j + 1) % NA; idx.push(a2, b2, a2 + NA, b2, b2 + NA, a2 + NA); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+      const m = new THREE.Mesh(g, tendonMat); m.castShadow = true; leg.add(m); return m; };
+    const qt = tendon(.075, .05), pt = tendon(.03, .036);
     const place = (m, a, b) => { m.position.copy(a).lerp(b, .5); const d = b.clone().sub(a); m.scale.set(1, d.length(), 1); m.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); };
     // flechas
     const aBW = arrow(C.bw), aQ = arrow(C.quad), aPF = arrow(C.pf); leg.add(aBW, aQ, aPF);
@@ -165,7 +171,7 @@ createDemo({
             leg.updateMatrixWorld(true);
       const W = (obj, p) => leg.worldToLocal(obj.localToWorld(p.clone()));
       const pc = W(patGroup, patC), qb = W(thigh, quadBottom), tub = W(shank, tuberosity), kL = K.clone(), hipL = W(thigh, hip);
-      place(qt, qb, pc.clone().add(V(0, patR * .5, 0))); place(pt, pc.clone().add(V(0, -patR * .6, 0)), tub);
+      { const pTop = pc.clone().add(V(0, patR * .35, patR * .25)); place(qt, qb.clone().add(qb.clone().sub(pTop).multiplyScalar(.35)), pTop); } place(pt, pc.clone().add(V(0, -patR * .6, 0)), tub);
       const f = forces(S.theta), sc = .13;
       aBW.set(V(hipL.x - .45, hipL.y + .1, hipL.z), V(0, -1, 0), .55 + 0 * sc);
       const qdir = qb.clone().sub(pc).normalize(); aQ.set(pc.clone().addScaledVector(qdir, .1), qdir, .2 + f.fq * sc);

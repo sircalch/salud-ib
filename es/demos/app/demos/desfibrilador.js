@@ -163,7 +163,7 @@ createDemo({
     UB.geo.skin.computeVertexNormals(); const sn = UB.geo.skin.attributes.normal;
     const surfPick = (yLoc, dir) => { let best = -1, bd = -1e9; for (let i = 0; i < sp.count; i++) { tv.fromBufferAttribute(sp, i); if (Math.abs(tv.y - yLoc) > 9 * SC || Math.abs(tv.x) > 160 * SC) continue; const d = tv.x * dir.x + tv.z * dir.z; if (d > bd) { bd = d; best = i; } } return best; };
     const padAt = (i) => { const p = V(0, 0, 0).fromBufferAttribute(sp, i), n = V(0, 0, 0); let k = 0; for (let j = 0; j < sp.count; j += 3) { tv.fromBufferAttribute(sp, j); if (tv.distanceToSquared(p) < (25 * SC) ** 2) { n.add(V(0, 0, 0).fromBufferAttribute(sn, j)); k++; } } n.normalize(); const na = V(p.x, 0, p.z).normalize(); if (n.dot(na) < 0) n.negate(); if (n.dot(na) < .6) n.copy(na); return { p, n }; };
-    const PR = padAt(surfPick(L(0, 0, 1335).y, V(-.32, 0, 1).normalize())), PLft = padAt(surfPick(L(0, 0, 1185).y, V(1, 0, 1.15).normalize()));
+    const PR = padAt(surfPick(L(0, 0, 1335).y, V(-.32, 0, 1).normalize())), PLft = padAt(surfPick(L(0, 0, 1175).y, V(1, 0, .6).normalize())); // ápex: línea axilar media izquierda
     // parche: malla que sigue la superficie de la piel
     const mkPad = (P, side, rot) => {
       const t1 = V(0, 1, 0).sub(P.n.clone().multiplyScalar(P.n.y)).normalize().applyAxisAngle(P.n, rot), t2 = P.n.clone().cross(t1).normalize();
@@ -180,7 +180,7 @@ createDemo({
       const at = (a, b) => hh[clamp(a, 0, NU) * (NVv + 1) + clamp(b, 0, NVv)];
       for (let it = 0; it < 40 && hh.some(Number.isNaN); it++) { const cp = hh.slice(); for (let a = 0; a <= NU; a++) for (let b = 0; b <= NVv; b++) { const i = a * (NVv + 1) + b; if (!Number.isNaN(cp[i])) continue; let sum = 0, n2 = 0; for (const [da, db] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a2 = clamp(a + da, 0, NU), b2 = clamp(b + db, 0, NVv), v2 = cp[a2 * (NVv + 1) + b2]; if (!Number.isNaN(v2)) { sum += v2; n2++; } } if (n2) hh[i] = sum / n2; } }
       for (let it = 0; it < 3; it++) { const cp = hh.slice(); for (let a = 0; a <= NU; a++) for (let b = 0; b <= NVv; b++) { const i = a * (NVv + 1) + b; const nb = [at(a + 1, b), at(a - 1, b), at(a, b + 1), at(a, b - 1)].filter((x) => !Number.isNaN(x)); hh[i] = Math.max(cp[i], (cp[i] * 2 + nb.reduce((x, y) => x + y, 0)) / (2 + nb.length)); } }
-      for (let a = 0; a <= NU; a++) for (let b = 0; b <= NVv; b++) { const i = a * (NVv + 1) + b, q = base[i].addScaledVector(P.n, (Number.isNaN(hh[i]) ? 0 : hh[i]) + 1.8 * SC); pos.push(q.x, q.y, q.z); uv.push(a / NU, b / NVv); }
+      for (let a = 0; a <= NU; a++) for (let b = 0; b <= NVv; b++) { const i = a * (NVv + 1) + b, q = base[i].addScaledVector(P.n, (Number.isNaN(hh[i]) ? 0 : hh[i]) + 1.8 * SC); pos.push(q.x, q.y, q.z); uv.push(1 - a / NU, b / NVv); } // u invertida: el texto se lee bien desde fuera
       for (let a = 0; a < NU; a++) for (let b = 0; b < NVv; b++) { const q = a * (NVv + 1) + b, r = q + NVv + 1; idx.push(q, r, q + 1, r, r + 1, q + 1); }
       const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g2.setIndex(idx); g2.computeVertexNormals();
       const top = new THREE.Mesh(g2, new THREE.MeshPhysicalMaterial({ map: padTexture(side), color: '#c9c9c4', roughness: .85, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 })); top.castShadow = true;
