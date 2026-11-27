@@ -166,9 +166,15 @@ createDemo({
       for (let i = pts.length - 1; i >= 0; i--) { const p = pts[i]; while (hi.length >= 2 && cr(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
       const hull = lo.slice(0, -1).concat(hi.slice(0, -1)), yT = (R.topRing[0]?.y ?? H.y) - .15;
       if (hull.length > 3) { const curve = new THREE.CatmullRomCurve3(hull.map((p) => V(p.x, yT, p.z)), true, 'centripetal'); const ring = curve.getSpacedPoints(120); const c0 = ring.reduce((a2, p2) => a2.add(p2), V(0, 0, 0)).divideScalar(ring.length); ring.forEach((p2) => p2.sub(c0).multiplyScalar(1.03).add(c0));
+        // al flexionar la cadera el muslo sube: todo lo que pase por encima de la tapa se recorta (la tapa cierra el corte)
+        { const clipP = new THREE.Plane(V(0, -1, 0), yT + .004); for (const Lg of [R, Lf]) Lg.skins.forEach((m) => { for (const mt of new Set([m.material, m.userData?.real?.material])) if (mt) { mt.clippingPlanes = [clipP]; mt.needsUpdate = true; } }); }
         const plain = new THREE.MeshPhysicalMaterial({ color: '#1f2a3a', roughness: .72, sheen: .6, sheenColor: new THREE.Color('#5a6f8f'), side: THREE.DoubleSide });
         const cap = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(ring.map((p2) => new THREE.Vector2(p2.x - c0.x, -(p2.z - c0.z))))), plain); cap.rotation.x = -Math.PI / 2; cap.position.copy(c0); scene.add(cap);
-        const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ring, true), 160, .036, 8, true), new THREE.MeshPhysicalMaterial({ color: '#141b26', roughness: .6 })); band.castShadow = true; scene.add(band); R.skins.push(cap, band); } }
+        const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ring, true), 160, .036, 8, true), new THREE.MeshPhysicalMaterial({ color: '#141b26', roughness: .6 })); band.castShadow = true; scene.add(band); R.skins.push(cap, band);
+        // faja fija alrededor de la pelvis: tapa el borde del muslo cuando la cadera se flexiona
+        { const SC = [.985, 1.03, 1.05, 1.06, 1.06], levels = [-.014, 0, .06, .12, .2].map((dy, k) => ring.map((p2) => V(c0.x + (p2.x - c0.x) * SC[k], yT - dy, c0.z + (p2.z - c0.z) * SC[k]))), N = ring.length, pos = [], idx = [];
+          levels.forEach((rg) => rg.forEach((p2) => pos.push(p2.x, p2.y, p2.z))); for (let v = 0; v < levels.length - 1; v++) for (let i = 0; i < N; i++) { const a2 = v * N + i, b2 = v * N + (i + 1) % N, c2 = a2 + N, d2 = b2 + N; idx.push(a2, c2, b2, b2, c2, d2); }
+          const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setIndex(idx); g2.computeVertexNormals(); const waist = new THREE.Mesh(g2, plain); waist.castShadow = true; scene.add(waist); R.skins.push(waist); } } }
     const { pH, pK0, pA, thigh, shankRaw, foot, M } = R;
     const opp = (x) => (x + 50) % 100; // la otra pierna va medio ciclo desfasada
     const deformSkin = () => { R.deformSkin(); Lf.deformSkin(); };
