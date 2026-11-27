@@ -124,23 +124,46 @@ createDemo({
         for (let i = 0; i < n; i++) { const y = b[i * 3 + 1]; const wt = smooth(K.y - .14, K.y + .14, y), wf = (1 - smooth(A.y - .02, A.y + .1, y)) * (1 - wt); w[i * 3] = wt; w[i * 3 + 2] = wf; w[i * 3 + 1] = Math.max(0, 1 - wt - wf); } return { pa, b, w, n, geo }; });
       // short deportivo: copia de la piel del muslo superior y la pelvis, separada 6 mm hacia afuera y deformada igual que la piel.
       // Los bordes se recortan en el shader según la altura original (y de reposo), así quedan rectos; arriba lo cierra una tapa.
-      { const src = geos[0], sp = src.attributes.position, ix = src.index.array, yS = K.y + (H.y - K.y) * .48, keep = [], map = new Map(), pos = [], byA = [];
+      { const src = geos[0], sp = src.attributes.position, ix = src.index.array, yS = K.y + (H.y - K.y) * .48;
         let yMax = -1e9; for (let i = 0; i < sp.count; i++) yMax = Math.max(yMax, sp.getY(i)); const yT = Math.min(H.y + .2, yMax - .12);
         const bins = new Map(), bk = (y) => Math.round(y / .03);
         for (let i = 0; i < sp.count; i++) { const k = bk(sp.getY(i)); const b = bins.get(k) || [0, 0, 0]; b[0] += sp.getX(i); b[1] += sp.getZ(i); b[2]++; bins.set(k, b); }
-        const OFF = .034;
-        for (let f = 0; f < ix.length; f += 3) { const ys = [sp.getY(ix[f]), sp.getY(ix[f + 1]), sp.getY(ix[f + 2])]; if (Math.max(...ys) < yS - .02 || Math.min(...ys) > yT + .04) continue;
-          for (let k = 0; k < 3; k++) { const o = ix[f + k]; if (!map.has(o)) { map.set(o, pos.length / 3); const b = bins.get(bk(sp.getY(o))); const dx = sp.getX(o) - b[0] / b[2], dz = sp.getZ(o) - b[1] / b[2], L = Math.hypot(dx, dz) || 1; pos.push(sp.getX(o) + dx / L * OFF, sp.getY(o), sp.getZ(o) + dz / L * OFF); byA.push(sp.getY(o)); } keep.push(map.get(o)); } }
-        const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); sg.setAttribute('aBy', new THREE.Float32BufferAttribute(byA, 1)); sg.setAttribute('aBx', new THREE.Float32BufferAttribute(new Float32Array(byA.length), 1)); sg.setIndex(keep); sg.computeVertexNormals();
+        // tubo liso: en cada altura, envolvente convexa del corte de la piel (sin la zona medial de la ingle), separada hacia afuera;
+        // así la tela no copia los bultos del modelo anatómico y el dobladillo queda recto
+        const OFF = .04, NA = 72, yHi = yT - .18, NLV = Math.max(8, Math.round((yHi - yS) / .02) + 1), xMed = MID - .16; // la piel medial por encima del dobladillo ya está oculta (ingle): la tela no la envuelve
+        const hullOf = (P) => { P.sort((a2, b2) => a2.x - b2.x || a2.z - b2.z); const cr = (o, a2, b2) => (a2.x - o.x) * (b2.z - o.z) - (a2.z - o.z) * (b2.x - o.x), lo = [], hi = [];
+          for (const q of P) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+          for (let i = P.length - 1; i >= 0; i--) { const q = P[i]; while (hi.length >= 2 && cr(hi[hi.length - 2], hi[hi.length - 1], q) <= 0) hi.pop(); hi.push(q); } return lo.slice(0, -1).concat(hi.slice(0, -1)); };
+        const rays = (H2, c) => Array.from({ length: NA }, (_, j) => { const t = j / NA * Math.PI * 2, dx = Math.cos(t), dz = Math.sin(t); let best = 0;
+          for (let i = 0; i < H2.length; i++) { const p0 = H2[i], p1 = H2[(i + 1) % H2.length], ex = p1.x - p0.x, ez = p1.z - p0.z, den = dx * ez - dz * ex; if (Math.abs(den) < 1e-9) continue;
+            const ox = p0.x - c.x, oz = p0.z - c.z, r = (ox * ez - oz * ex) / den, u = (ox * dz - oz * dx) / den; if (r > 0 && u >= -1e-6 && u <= 1 + 1e-6) best = Math.max(best, r); } return best; });
+        // eje recto (regresión de los centros por altura) y, para cada altura y ángulo, el radio máximo de la piel; luego dilatar y suavizar
+        const lvY = Array.from({ length: NLV }, (_, k) => yS - .01 + (yHi - yS + .01) * k / (NLV - 1)), pts = [];
+        for (let i = 0; i < sp.count; i++) { const y = sp.getY(i); if (y > yS - .08 && y < yHi + .08 && (sp.getX(i) < xMed || y < yS)) pts.push([sp.getX(i), y, sp.getZ(i)]); }
+        let sy = 0, sx = 0, sz = 0, syy = 0, sxy = 0, szy = 0; for (const q of pts) { sy += q[1]; sx += q[0]; sz += q[2]; syy += q[1] * q[1]; sxy += q[0] * q[1]; szy += q[2] * q[1]; }
+        const nP = pts.length || 1, vy = syy / nP - (sy / nP) ** 2 || 1, kx = (sxy / nP - sx / nP * sy / nP) / vy, kz = (szy / nP - sz / nP * sy / nP) / vy, axc = (y) => ({ x: sx / nP + kx * (y - sy / nP), z: sz / nP + kz * (y - sy / nP) });
+        let R0 = lvY.map(() => new Float32Array(NA));
+        for (const q of pts) { for (let k = 0; k < NLV; k++) { if (Math.abs(q[1] - lvY[k]) > .045) continue; const c = axc(q[1]), dx = q[0] - c.x, dz = q[2] - c.z, j = ((Math.round(Math.atan2(dz, dx) / (Math.PI * 2) * NA) % NA) + NA) % NA; R0[k][j] = Math.max(R0[k][j], Math.hypot(dx, dz)); } }
+        for (const row of R0) { const mx = Math.max(...row); for (let j = 0; j < NA; j++) if (!row[j]) { let l = 1; while (l < NA && !row[(j + l) % NA] && !row[(j - l + NA) % NA]) l++; row[j] = Math.max(row[(j + l) % NA], row[(j - l + NA) % NA]) || mx; } }
+        const dil = R0.map((row, k) => row.map((_, j) => { let m = 0; for (let dk = -3; dk <= 3; dk++) { const kk = Math.min(NLV - 1, Math.max(0, k + dk)); for (let dj = -4; dj <= 4; dj++) m = Math.max(m, R0[kk][(j + dj + NA) % NA]); } return m; }));
+        let Rs = dil; for (let it = 0; it < 8; it++) Rs = Rs.map((row, k) => row.map((v, j) => { const a2 = Rs[Math.max(0, k - 1)][j], b2 = Rs[Math.min(NLV - 1, k + 1)][j]; return (v * 4 + a2 + b2 + row[(j + 1) % NA] + row[(j + NA - 1) % NA]) / 8; }));
+        const lv = lvY.map((y, k) => { const c = axc(y); return { y, c, r: Rs[k].map((v, j) => { const ct = Math.cos(j / NA * Math.PI * 2), lim = ct > .05 ? (MID - .012 - c.x) / ct - OFF : 1e9; return Math.min(Math.max(v, R0[k][j]), Math.max(lim, R0[k][j] * .9)); }) }; }); // la cara interna no cruza la línea media
+        const pos = [], byA = [], keep = [];
+        lv.forEach((L2, k) => { for (let j = 0; j < NA; j++) { const t = j / NA * Math.PI * 2, rr = L2.r[j] + OFF + (k === 0 ? -.006 : 0); pos.push(L2.c.x + Math.cos(t) * rr, L2.y, L2.c.z + Math.sin(t) * rr); byA.push(L2.y); } });
+        for (let k = 0; k < NLV - 1; k++) for (let j = 0; j < NA; j++) { const a2 = k * NA + j, b2 = k * NA + (j + 1) % NA; keep.push(a2, b2, a2 + NA, b2, b2 + NA, a2 + NA); }
+        { const Lt = lv[NLV - 1], ci = pos.length / 3, t0 = (NLV - 1) * NA; pos.push(Lt.c.x, Lt.y, Lt.c.z); byA.push(Lt.y - .001); for (let j = 0; j < NA; j++) keep.push(ci, t0 + (j + 1) % NA, t0 + j); } // tapa del tubo: si el muslo sube, se ve tela y no un hueco
+        const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); sg.setAttribute('aBy', new THREE.Float32BufferAttribute(byA, 1)); sg.setAttribute('aBx', new THREE.Float32BufferAttribute(new Float32Array(byA.length), 1)); sg.setIndex(keep); sg.addGroup(0, (NLV - 1) * NA * 6, 0); sg.addGroup((NLV - 1) * NA * 6, NA * 3, 1); sg.computeVertexNormals();
         const NL = String.fromCharCode(10);
         const cutMat = (m, lo, hi, groin = false) => { m.onBeforeCompile = (sh) => { sh.vertexShader = 'attribute float aBy;' + NL + 'attribute float aBx;' + NL + 'varying float vBy;' + NL + 'varying float vBx;' + NL + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>' + NL + 'vBy = aBy; vBx = aBx;');
           sh.fragmentShader = 'varying float vBy;' + NL + 'varying float vBx;' + NL + sh.fragmentShader.replace('void main() {', 'void main() {' + NL + ` if (vBy < ${lo.toFixed(4)} || vBy > ${hi.toFixed(4)}) discard;` + (groin ? ` if (vBy > ${yS.toFixed(4)} && vBx > ${(MID - .16).toFixed(4)}) discard;` : '')); }; m.customProgramCacheKey = () => `cut${lo.toFixed(3)}_${hi.toFixed(3)}_${groin ? 1 : 0}`; m.needsUpdate = true; };
-        const cloth = new THREE.MeshPhysicalMaterial({ color: '#1f2a3a', roughness: .72, sheen: .6, sheenColor: new THREE.Color('#5a6f8f'), side: THREE.DoubleSide }); cutMat(cloth, yS, yT - .17);
-        const shorts = new THREE.Mesh(sg, cloth); shorts.castShadow = true; leg.add(shorts);
-        geos.push(sg); skins.push(shorts);
-        const pa = sg.attributes.position, b = Float32Array.from(pa.array), n = pa.count, w = new Float32Array(n * 3); for (let i = 0; i < n; i++) w[i * 3] = 1; skinD.push({ pa, b, w, n, geo: sg });
+        const cloth = new THREE.MeshPhysicalMaterial({ color: '#1f2a3a', roughness: .72, sheen: .6, sheenColor: new THREE.Color('#5a6f8f'), side: THREE.DoubleSide }); cutMat(cloth, yS, 99);
+        const shorts = new THREE.Mesh(sg, [cloth, new THREE.MeshStandardMaterial({ color: '#0b0f16', roughness: 1, side: THREE.DoubleSide })]); shorts.castShadow = true; leg.add(shorts);
+        shorts.userData.cloth = true; geos.push(sg); skins.push(shorts);
+        const pa = sg.attributes.position, b = Float32Array.from(pa.array), n = pa.count, w = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const y = b[i * 3 + 1], wt = smooth(K.y - .14, K.y + .14, y); w[i * 3] = wt; w[i * 3 + 1] = 1 - wt; } skinD.push({ pa, b, w, n, geo: sg }); // mismos pesos que la piel
+        // arriba, tela y piel se mezclan con la pelvis (fija): se doblan en la ingle en vez de despegarse de la cintura
+        for (const D of [skinD[0], skinD[skinD.length - 1]]) { D.wp = new Float32Array(D.n); for (let i = 0; i < D.n; i++) D.wp[i] = smooth(yHi - .32, yHi + .01, D.b[i * 3 + 1]); }
         // la piel también se corta a la misma altura (oculta el borde irregular del modelo)
-        src.setAttribute('aBy', new THREE.Float32BufferAttribute(Float32Array.from({ length: sp.count }, (_, i) => sp.getY(i)), 1)); src.setAttribute('aBx', new THREE.Float32BufferAttribute(Float32Array.from({ length: sp.count }, (_, i) => sp.getX(i)), 1)); cutMat(skins[0].userData.real.material, -99, yT - .17, true);
+        src.setAttribute('aBy', new THREE.Float32BufferAttribute(Float32Array.from({ length: sp.count }, (_, i) => sp.getY(i)), 1)); src.setAttribute('aBx', new THREE.Float32BufferAttribute(Float32Array.from({ length: sp.count }, (_, i) => sp.getX(i)), 1)); cutMat(skins[0].userData.real.material, -99, yHi - .015, true);
         // contorno superior (en reposo) para la pretina común a las dos piernas
         topRing = []; for (let i = 0; i < n; i++) if (Math.abs(b[i * 3 + 1] - (yT - .15)) < .04) topRing.push(V(b[i * 3], yT, b[i * 3 + 2])); }
       const seam = seamPairs(geos[0], geos[1], .004);
@@ -150,7 +173,8 @@ createDemo({
         mT.multiplyMatrices(inv, thigh.matrixWorld); mS.multiplyMatrices(inv, shankRaw.matrixWorld); mF.multiplyMatrices(inv, foot.matrixWorld);
         for (const D of skinD) { const a = D.pa.array, b = D.b, w = D.w; for (let i = 0; i < D.n; i++) {
           v1.set(b[i * 3], b[i * 3 + 1], b[i * 3 + 2]); v2.copy(v1); v3.copy(v1); v1.applyMatrix4(mT); v2.applyMatrix4(mS); v3.applyMatrix4(mF);
-          a[i * 3] = v1.x * w[i * 3] + v2.x * w[i * 3 + 1] + v3.x * w[i * 3 + 2]; a[i * 3 + 1] = v1.y * w[i * 3] + v2.y * w[i * 3 + 1] + v3.y * w[i * 3 + 2]; a[i * 3 + 2] = v1.z * w[i * 3] + v2.z * w[i * 3 + 1] + v3.z * w[i * 3 + 2]; }
+          a[i * 3] = v1.x * w[i * 3] + v2.x * w[i * 3 + 1] + v3.x * w[i * 3 + 2]; a[i * 3 + 1] = v1.y * w[i * 3] + v2.y * w[i * 3 + 1] + v3.y * w[i * 3 + 2]; a[i * 3 + 2] = v1.z * w[i * 3] + v2.z * w[i * 3 + 1] + v3.z * w[i * 3 + 2];
+            if (D.wp) { const p = D.wp[i]; if (p > 0) for (let q = 0; q < 3; q++) a[i * 3 + q] += (b[i * 3 + q] - a[i * 3 + q]) * p; } }
           D.pa.needsUpdate = true; D.geo.computeVertexNormals(); }
         fixSeam(seam);
       };
@@ -167,14 +191,14 @@ createDemo({
       const hull = lo.slice(0, -1).concat(hi.slice(0, -1)), yT = (R.topRing[0]?.y ?? H.y) - .15;
       if (hull.length > 3) { const curve = new THREE.CatmullRomCurve3(hull.map((p) => V(p.x, yT, p.z)), true, 'centripetal'); const ring = curve.getSpacedPoints(120); const c0 = ring.reduce((a2, p2) => a2.add(p2), V(0, 0, 0)).divideScalar(ring.length); ring.forEach((p2) => p2.sub(c0).multiplyScalar(1.03).add(c0));
         // al flexionar la cadera el muslo sube: todo lo que pase por encima de la tapa se recorta (la tapa cierra el corte)
-        { const clipP = new THREE.Plane(V(0, -1, 0), yT + .004); for (const Lg of [R, Lf]) Lg.skins.forEach((m) => { for (const mt of new Set([m.material, m.userData?.real?.material])) if (mt) { mt.clippingPlanes = [clipP]; mt.needsUpdate = true; } }); }
+        { const clipP = new THREE.Plane(V(0, -1, 0), yT + .004); for (const Lg of [R, Lf]) Lg.skins.filter((m) => !m.userData.cloth).forEach((m) => { for (const mt of new Set([m.material, m.userData?.real?.material])) if (mt) { mt.clippingPlanes = [clipP]; mt.needsUpdate = true; } }); }
         const plain = new THREE.MeshPhysicalMaterial({ color: '#1f2a3a', roughness: .72, sheen: .6, sheenColor: new THREE.Color('#5a6f8f'), side: THREE.DoubleSide });
-        const cap = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(ring.map((p2) => new THREE.Vector2(p2.x - c0.x, -(p2.z - c0.z))))), plain); cap.rotation.x = -Math.PI / 2; cap.position.copy(c0); scene.add(cap);
-        const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ring, true), 160, .036, 8, true), new THREE.MeshPhysicalMaterial({ color: '#141b26', roughness: .6 })); band.castShadow = true; scene.add(band); R.skins.push(cap, band);
+        const cap = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(ring.map((p2) => new THREE.Vector2(p2.x - c0.x, -(p2.z - c0.z))))), plain); cap.rotation.x = -Math.PI / 2; cap.position.copy(c0); cap.position.y += .1; cap.scale.set(.5, .5, 1); scene.add(cap);
+        const band = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(ring, true), 160, .022, 8, true), new THREE.MeshPhysicalMaterial({ color: '#18212e', roughness: .7, sheen: .4, sheenColor: new THREE.Color('#4a5d7a') })); R.skins.push(cap); // sin aro oscuro: la cintura es una cúpula de tela, no una bandeja
         // faja fija alrededor de la pelvis: tapa el borde del muslo cuando la cadera se flexiona
-        { const SC = [.985, 1.03, 1.05, 1.06, 1.06], levels = [-.014, 0, .06, .12, .2].map((dy, k) => ring.map((p2) => V(c0.x + (p2.x - c0.x) * SC[k], yT - dy, c0.z + (p2.z - c0.z) * SC[k]))), N = ring.length, pos = [], idx = [];
+        { const SC = [.5, .72, .87, .955, .995, 1.005, 1.01, 1.012], levels = [-.1, -.088, -.065, -.035, -.01, 0, .05, .1].map((dy, k) => ring.map((p2) => V(c0.x + (p2.x - c0.x) * SC[k], yT - dy, c0.z + (p2.z - c0.z) * SC[k]))), N = ring.length, pos = [], idx = [];
           levels.forEach((rg) => rg.forEach((p2) => pos.push(p2.x, p2.y, p2.z))); for (let v = 0; v < levels.length - 1; v++) for (let i = 0; i < N; i++) { const a2 = v * N + i, b2 = v * N + (i + 1) % N, c2 = a2 + N, d2 = b2 + N; idx.push(a2, c2, b2, b2, c2, d2); }
-          const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setIndex(idx); g2.computeVertexNormals(); const waist = new THREE.Mesh(g2, plain); waist.castShadow = true; scene.add(waist); R.skins.push(waist); } } }
+          const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g2.setIndex(idx); g2.computeVertexNormals(); const wm = plain.clone(); wm.side = THREE.BackSide; const waist = new THREE.Mesh(g2, wm); waist.castShadow = true; scene.add(waist); const liner = new THREE.Mesh(g2, new THREE.MeshStandardMaterial({ color: '#0b0f16', roughness: 1, side: THREE.FrontSide })); scene.add(liner); R.skins.push(waist, liner); } } }
     const { pH, pK0, pA, thigh, shankRaw, foot, M } = R;
     const opp = (x) => (x + 50) % 100; // la otra pierna va medio ciclo desfasada
     const deformSkin = () => { R.deformSkin(); Lf.deformSkin(); };
