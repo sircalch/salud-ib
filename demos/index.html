@@ -29,6 +29,7 @@
 <a class="lessons" href="https://sircalch.github.io/es/herramientas/"><b>LESSONS</b>Simulators and lessons live in Tools <span aria-hidden="true">→</span></a>
 </section>
 <section class="wrap" id="demos">
+<a class="refs-link" href="#referencias">See the references for each demo ↓</a>
 <div class="chips" role="group" aria-label="Filter demos by field"><button class="chip" type="button" data-f="all" aria-pressed="true"><i style="--c:#121225"></i>All <small>11</small></button><button class="chip" type="button" data-f="med" aria-pressed="false"><i style="--c:#ff5a6e"></i>Medicine <small>5</small></button><button class="chip" type="button" data-f="bme" aria-pressed="false"><i style="--c:#3b82f6"></i>Biomedical engineering <small>5</small></button><button class="chip" type="button" data-f="nur" aria-pressed="false"><i style="--c:#2dd4bf"></i>Nursing <small>6</small></button><button class="chip" type="button" data-f="phy" aria-pressed="false"><i style="--c:#ffb020"></i>Physiotherapy <small>2</small></button></div>
 <ul class="grid">
 <li data-cat="nur bme"><a class="card" style="--c:#2dd4bf" href="blood-pressure/"><div class="thumb"><img src="../es/demos/app/thumbs/tensiometro.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"><span class="sticker" aria-hidden="true">NEW</span></div><div class="body"><span class="tag"><i></i>Nursing</span><h2>Taking blood pressure</h2><p>A real arm and an aneroid sphygmomanometer: inflate the cuff, hear the Korotkoff sounds and see how an automatic monitor measures.</p><span class="go">Open demo →</span></div></a></li>
@@ -44,6 +45,11 @@
 <li data-cat="bme nur"><a class="card" style="--c:#3b82f6" href="ventilator/"><div class="thumb"><img src="../es/demos/app/thumbs/ventilador.jpg" alt="" width="800" height="449" loading="lazy" decoding="async"></div><div class="body"><span class="tag"><i></i>Biomedical engineering</span><h2>Inside the ventilator</h2><p>Real intubated lungs and a ventilator with pressure, flow and volume curves: modes, PEEP, plateau pressure and alarms.</p><span class="go">Open demo →</span></div></a></li>
 </ul>
 </section>
+<section class="refs-sec" id="referencias" aria-labelledby="refs-h">
+<h2 id="refs-h">References</h2>
+<p class="lede">Each demo is grounded in clinical guidelines, classic papers and reviews. Every reference is verified in PubMed, with its DOI.</p>
+<div class="refs-list"></div>
+</section>
 </main>
 <footer class="site-foot"><div class="wrap">
 <div class="cols">
@@ -57,6 +63,13 @@
 (function(){var cs=[].slice.call(document.querySelectorAll('.chip')),items=[].slice.call(document.querySelectorAll('.grid > li'));
 cs.forEach(function(b){b.addEventListener('click',function(){var f=b.dataset.f;cs.forEach(function(x){x.setAttribute('aria-pressed',String(x===b))});items.forEach(function(li){li.hidden=!(f==='all'||li.dataset.cat.split(' ').indexOf(f)>=0)});history.replaceState(null,'',f==='all'?location.pathname:'#'+f)})});
 var h=location.hash.slice(1);var m=cs.filter(function(b){return b.dataset.f===h})[0];if(m)m.click();})();
+</script>
+<script type="module">
+import { refsFor } from '../es/demos/app/refs.js';
+const box = document.querySelector('.refs-list'), en = document.documentElement.lang.startsWith('en'); const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+for (const a of document.querySelectorAll('.grid .card')) { const slug = a.getAttribute('href').replace(/\/$/, ''), refs = refsFor(slug).filter((r) => r.pmid !== '18835852'); if (!refs.length) continue;
+  const d = document.createElement('details'); d.innerHTML = `<summary><span>${esc(a.querySelector('h2').textContent)}</span><small>${refs.length}</small></summary><ol>${refs.map((r) => `<li><b>${esc(en ? r.en : r.es)}</b><a href="https://doi.org/${esc(r.doi)}" target="_blank" rel="noopener">${esc(r.t)}</a><span>${esc(r.a)} <i>${esc(r.j)}</i>. ${r.y};${esc(r.v)}. · <a href="https://pubmed.ncbi.nlm.nih.gov/${esc(r.pmid)}/" target="_blank" rel="noopener">PubMed</a>${r.oa ? (en ? ' · free full text' : ' · texto completo gratis') : ''}</span></li>`).join('')}</ol>`; box.appendChild(d); }
+const bp = refsFor('corazon').find((r) => r.pmid === '18835852'); if (bp) { const p = document.createElement('p'); p.className = 'refs-bp'; p.innerHTML = `${en ? '3D anatomy in every demo' : 'Anatomía 3D de todas las demos'}: ${esc(bp.a)} <a href="https://doi.org/${esc(bp.doi)}" target="_blank" rel="noopener">${esc(bp.t)}</a> <i>${esc(bp.j)}</i>. ${bp.y};${esc(bp.v)}.`; box.appendChild(p); }
 </script>
 </body>
 </html>
