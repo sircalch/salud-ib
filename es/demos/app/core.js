@@ -9,6 +9,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { refsFor } from './refs.js';
 
 export { THREE };
 export const lang = (document.documentElement.lang || 'es').toLowerCase().startsWith('en') ? 'en' : 'es';
@@ -527,7 +528,21 @@ export function createDemo(cfg) {
   const TITLES = { corazon: ['El corazón eléctrico', 'The electric heart'], pulsioximetro: ['La luz que mide el oxígeno', 'The light that measures oxygen'], goteo: ['Gota a gota', 'Drop by drop'], pulmones: ['Cómo respiras', 'How you breathe'],
     rodilla: ['La rodilla como palanca', 'The knee as a lever'], valvulas: ['Válvulas y ruidos del corazón', 'Heart valves and sounds'], marcha: ['Marcha paso a paso', 'Gait, step by step'], ventilador: ['Dentro del ventilador', 'Inside the ventilator'],
     tensiometro: ['Tomar la presión arterial', 'Taking blood pressure'], desfibrilador: ['El desfibrilador (DEA)', 'The defibrillator (AED)'], ecg: ['El ECG de 12 derivaciones', 'The 12-lead ECG'] };
+  // Para saber más: referencias verificadas (PubMed) de cada demo
+  const demoSlug = location.pathname.split('/').filter(Boolean).pop(), refs = refsFor(demoSlug);
+  const refsEl = el('div', 'refs glass'); refsEl.setAttribute('role', 'dialog'); refsEl.setAttribute('aria-modal', 'true'); refsEl.setAttribute('aria-label', lang === 'en' ? 'Further reading' : 'Para saber más'); document.body.appendChild(refsEl);
+  const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function openRefs() {
+    if (!refs.length) return;
+    refsEl.innerHTML = `<div class="rh"><div><span class="k">${lang === 'en' ? 'Further reading' : 'Para saber más'}</span><h2>${lang === 'en' ? 'Research behind this demo' : 'Investigación detrás de esta demo'}</h2></div><button type="button" class="x" aria-label="${lang === 'en' ? 'Close' : 'Cerrar'}">×</button></div>
+      <ol>${refs.map((r) => `<li><p class="why">${esc(lang === 'en' ? r.en : r.es)}</p><a class="tt" href="https://doi.org/${esc(r.doi)}" target="_blank" rel="noopener">${esc(r.t)}</a><p class="src">${esc(r.a)} <i>${esc(r.j)}</i>. ${r.y};${esc(r.v)}.</p>
+        <p class="lk"><a href="https://doi.org/${esc(r.doi)}" target="_blank" rel="noopener">DOI ${esc(r.doi)}</a> · <a href="https://pubmed.ncbi.nlm.nih.gov/${esc(r.pmid)}/" target="_blank" rel="noopener">PubMed</a>${r.oa ? ` · <span class="oa">${lang === 'en' ? 'free full text' : 'texto completo gratis'}</span>` : ''}</p></li>`).join('')}</ol>
+      <p class="note">${lang === 'en' ? 'References verified in PubMed. Teaching material: it does not replace clinical training or guidelines.' : 'Referencias verificadas en PubMed. Material educativo: no sustituye la formación clínica ni las guías.'}</p>`;
+    refsEl.classList.add('open'); refsEl.querySelector('.x').onclick = closeRefs; refsEl.querySelector('.x').focus();
+  }
+  function closeRefs() { refsEl.classList.remove('open'); }
   function nextDemoLink() {
+    if (refs.length) { const b = el('button', 'abtn refs-btn', lang === 'en' ? 'Further reading' : 'Para saber más'); b.type = 'button'; b.onclick = openRefs; action.appendChild(b); }
     const slug = location.pathname.split('/').filter(Boolean).pop(); const i = ORDER.findIndex((o) => o.includes(slug)); if (i < 0) return;
     const nx = ORDER[(i + 1) % ORDER.length], a = el('a', 'abtn next-demo', `${lang === 'en' ? 'Next demo' : 'Siguiente demo'}: ${TITLES[nx[0]][lang === 'en' ? 1 : 0]} →`);
     a.href = `../${lang === 'en' ? nx[1] : nx[0]}/`; action.appendChild(a);
@@ -565,6 +580,7 @@ export function createDemo(cfg) {
   const other = cfg.otherLang ?? document.documentElement.dataset.other;
   if (cfg.sources) { menu.appendChild(el('div', 'lang', `<span style="font-size:.72rem">${lang === 'en' ? 'Model and sources: ' : 'Modelo y fuentes: '}${t(cfg.sources)}</span>`)); }
   if (cfg.credit) { const cr = el('div', 'lang', `<span style="font-size:.72rem">${t(cfg.credit)}</span>`); menu.appendChild(cr); hint.innerHTML = `${t(L.hint)}<br><span style="opacity:.75">${t(cfg.credit)}</span>`; }
+  if (refs.length) { const rb = el('div', 'lang', `<button type="button" class="share">${lang === 'en' ? 'Further reading · references' : 'Para saber más · referencias'} (${refs.length})</button>`); menu.appendChild(rb); rb.querySelector('button').onclick = () => { menu.classList.remove('open'); openRefs(); }; }
   { const sh = el('div', 'lang', `<button type="button" class="share">${lang === 'en' ? 'Share this demo' : 'Compartir esta demo'} ↗</button>`); menu.appendChild(sh);
     sh.querySelector('button').onclick = async () => {
       const url = location.href.split('#')[0] + (ci > 0 ? `#${lang === 'en' ? 'chapter' : 'capitulo'}-${ci + 1}` : '');
@@ -584,7 +600,7 @@ export function createDemo(cfg) {
   addEventListener('keydown', (e) => {
     if (e.target.closest && e.target.closest('input,select,textarea')) return;
     if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) toggleFS();
-    if (e.key === 'ArrowRight') go(ci + 1); if (e.key === 'ArrowLeft') go(ci - 1); if (e.key === 'Escape') { menu.classList.remove('open'); closeQuiz(); }
+    if (e.key === 'ArrowRight') go(ci + 1); if (e.key === 'ArrowLeft') go(ci - 1); if (e.key === 'Escape') { menu.classList.remove('open'); closeQuiz(); closeRefs(); }
   });
 
   const ctx = { setXray: (v) => setX(v), THREE, scene, camera, controls, renderer, flyTo, label, showLabels, side, ui, quiz, toast, sound, t, lang, state: {}, time: 0, timeScale: 1, accent, chapter: () => ci, go };
