@@ -176,7 +176,7 @@ const PRESETS = {
   diaphragm: { color: '#ffffff', tint: ['#7d1f27', '#b8474f', 18], roughness: .5, clearcoat: .3, sheen: .5, sheenColor: '#ff9a9a', bump: 1 },
   skin: { color: '#ffffff', tint: ['#b98269', '#d8a68e', 3], roughness: .58, sheen: .45, sheenColor: '#f3cdb8', clearcoat: .06, clearcoatRoughness: .5, bump: .35 },
   nail: { color: '#efcfc4', roughness: .22, clearcoat: 1, bump: .1 },
-  bone: { color: '#ffffff', tint: ['#a8977a', '#cdbf9f', 3], roughness: .68, bump: 1.1 },
+  bone: { color: '#ffffff', tint: ['#c4b9a0', '#ece5d4', 3], roughness: .62, bump: 1.1 },
   cartilage: { color: '#c9b4aa', roughness: .4, clearcoat: .5, bump: .3 },
   tendon: { color: '#b3a07f', roughness: .42, sheen: .5, sheenColor: '#efe4cc', bump: .6 },
   plastic: { color: '#b9c0c8', roughness: .55, clearcoat: .25, clearcoatRoughness: .4 },

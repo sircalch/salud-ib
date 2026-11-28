@@ -141,18 +141,21 @@ createDemo({
     const slab = (w, d, h, r) => { const sh = new THREE.Shape(), x = -w / 2, y = -d / 2; sh.moveTo(x + r, y); sh.lineTo(x + w - r, y); sh.quadraticCurveTo(x + w, y, x + w, y + r); sh.lineTo(x + w, y + d - r); sh.quadraticCurveTo(x + w, y + d, x + w - r, y + d); sh.lineTo(x + r, y + d); sh.quadraticCurveTo(x, y + d, x, y + d - r); sh.lineTo(x, y + r); sh.quadraticCurveTo(x, y, x + r, y);
       const g = new THREE.ExtrudeGeometry(sh, { depth: h - .08, bevelEnabled: true, bevelThickness: .04, bevelSize: .04, bevelSegments: 6, curveSegments: 16 }); g.rotateX(-Math.PI / 2); g.translate(0, -(h - .08) / 2, 0); g.computeVertexNormals(); return g; };
     const clip = new THREE.Group(); clip.position.x = .75; rig.add(clip);
-    const shellGeo = () => { const sh = new THREE.Shape(); sh.absarc(0, 0, .76, 0, Math.PI, false); sh.lineTo(-.6, 0); sh.absarc(0, 0, .6, Math.PI, 0, true); sh.lineTo(.76, 0);
-      const g = new THREE.ExtrudeGeometry(sh, { depth: 1.42, bevelEnabled: true, bevelThickness: .04, bevelSize: .035, bevelSegments: 5, curveSegments: 48 }); g.translate(0, 0, -.71); g.rotateY(Math.PI / 2); g.computeVertexNormals(); return g; };
-    const shellG = shellGeo(), shellB = shellGeo(); shellB.rotateX(Math.PI);
-    const top = holoMesh(shellG, C.dev, { real: 'plastic', realOpts: { color: '#cdd3da' }, ghost: .12, opacity: .008, rim: .28, intensity: .55, scan: .03, edgeOpacity: .28 }); clip.add(top);
-    const bot = holoMesh(shellB, C.dev, { real: 'plasticDark', realOpts: { color: '#3b4452' }, ghost: .12, opacity: .008, rim: .28, intensity: .55, scan: .03, edgeOpacity: .28 }); clip.add(bot);
+    // cada mitad es una sola pieza: perfil redondeado con el canal del dedo, extruida a lo largo del dedo y con bordes muy suaves
+    const halfGeo = (H, W = 1.0, L2 = 1.45, R = .6, bev = .1) => { const sh = new THREE.Shape(), r = .26;
+      sh.moveTo(R, 0); sh.lineTo(W / 2 + .02, 0); sh.lineTo(W / 2 + .02, H - r); sh.quadraticCurveTo(W / 2 + .02, H, W / 2 - r, H + .02); sh.quadraticCurveTo(0, H + .07, -W / 2 + r, H + .02); sh.quadraticCurveTo(-W / 2 - .02, H, -W / 2 - .02, H - r); sh.lineTo(-W / 2 - .02, 0); sh.lineTo(-R, 0);
+      sh.absarc(0, 0, R, Math.PI, 0, true);
+      const g = new THREE.ExtrudeGeometry(sh, { depth: L2, bevelEnabled: true, bevelThickness: bev, bevelSize: bev * .8, bevelSegments: 8, curveSegments: 40 }); g.translate(0, 0, -L2 / 2); g.rotateY(Math.PI / 2); g.computeVertexNormals(); return g; };
+    const shellG = halfGeo(.9), shellB = halfGeo(.74); shellB.rotateX(Math.PI);
+    const top = holoMesh(shellG, C.dev, { real: 'plasticTint', realOpts: { color: '#2b67c9', roughness: .42, clearcoat: .35, clearcoatRoughness: .3 }, ghost: .12, opacity: .008, rim: .28, intensity: .55, scan: .03, edgeOpacity: .28 }); clip.add(top);
+    const bot = holoMesh(shellB, C.dev, { real: 'plastic', realOpts: { color: '#e4e8ec', roughness: .5, clearcoat: .2 }, ghost: .12, opacity: .008, rim: .28, intensity: .55, scan: .03, edgeOpacity: .28 }); clip.add(bot);
+    // ventana negra brillante bajo la pantalla
+    const win = new THREE.Mesh(slab(1.5, .84, .03, .1), new THREE.MeshPhysicalMaterial({ color: '#0d1116', roughness: .15, clearcoat: 1 })); win.position.y = 1.07; clip.add(win);
     // almohadillas de silicona y botón de encendido
     const padGeo = (up) => { const g = new THREE.CylinderGeometry(.6, .6, 1.3, 48, 1, true, up ? 0 : Math.PI, Math.PI); g.rotateZ(Math.PI / 2); g.rotateX(up ? Math.PI / 2 : -Math.PI / 2); return g; };
     [true, false].forEach((up) => { const pad = holoMesh(padGeo(up), C.dev, { real: 'rubber', realOpts: { color: '#8b949e', roughness: .95, side: THREE.DoubleSide }, ghost: .08, opacity: .005, rim: .2, edges: false }); pad.scale.set(1, .985, .985); clip.add(pad); });
-    const btn = holoMesh(new THREE.CylinderGeometry(.09, .09, .05, 24), C.dev, { real: 'rubber', realOpts: { color: '#d7dde3' }, ghost: .2, edges: false }); btn.rotation.x = Math.PI / 2; btn.position.set(.45, .92, .63); clip.add(btn);
-    const body = holoMesh(slab(1.65, 1.2, .36, .22), C.dev, { real: 'plasticTint', realOpts: { color: '#1f6feb', roughness: .62, clearcoat: 0 }, ghost: .15, opacity: .008, rim: .22, intensity: .5, scan: .03, edgeOpacity: .3 }); body.position.y = .92; clip.add(body);
-    const base = holoMesh(slab(1.6, 1.1, .24, .2), C.dev, { real: 'plasticDark', ghost: .15, opacity: .008, rim: .22, intensity: .5, scan: .03, edgeOpacity: .25 }); base.position.y = -.85; clip.add(base);
-    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 1.0, 16), realMat('metal')); hinge.rotation.x = Math.PI / 2; hinge.position.set(-.78, .7, 0); clip.add(hinge);
+    const btn = holoMesh(new THREE.CylinderGeometry(.09, .09, .05, 24), C.dev, { real: 'rubber', realOpts: { color: '#d7dde3' }, ghost: .2, edges: false }); btn.rotation.x = Math.PI / 2; btn.position.set(.35, .62, .62); clip.add(btn);
+    const hinge = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .9, 24), realMat('plasticDark', { color: '#3b4452' })); hinge.rotation.x = Math.PI / 2; hinge.position.set(-.86, .02, 0); clip.add(hinge); // bisagra con resorte atrás
     // pantalla del aparato
     const scr = document.createElement('canvas'); scr.width = 512; scr.height = 256; const sg = scr.getContext('2d'); const scrTex = new THREE.CanvasTexture(scr); scrTex.colorSpace = THREE.SRGBColorSpace;
     const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.4, .7), new THREE.MeshBasicMaterial({ map: scrTex, color: '#69737c' }));
