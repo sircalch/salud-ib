@@ -17,31 +17,31 @@ const GAIN = { aortic: { s1: .5, s2: 1 }, pulmonary: { s1: .5, s2: .9 }, tricusp
 const MURMUR = { as: { focus: 'aortic', es: 'Estenosis aórtica', en: 'Aortic stenosis' }, mr: { focus: 'mitral', es: 'Insuficiencia mitral', en: 'Mitral regurgitation' } };
 
 const chapters = [
-  { title: { es: 'Cuatro puertas', en: 'Four doors' }, cam: { pos: [1.4, .9, 6.8], target: [0, .3, 0] }, labels: [0, 1, 2, 3], xray: true,
+  { title: { es: 'Cuatro puertas', en: 'Four doors' }, cam: { pos: [1.4, .9, 6.8], target: [0, .3, 0] }, labels: [0, 1, 2, 3], xray: false,
     lines: [
       { es: 'El corazón tiene cuatro válvulas: dos entre aurículas y ventrículos y dos a la salida de las arterias.', en: 'The heart has four valves: two between atria and ventricles and two at the exits to the arteries.' },
       { es: 'Tricúspide y mitral dejan pasar la sangre a los ventrículos. Pulmonar y aórtica la dejan salir.', en: 'Tricuspid and mitral let blood into the ventricles. Pulmonary and aortic let it out.' },
       { es: 'Solo dejan pasar la sangre en un sentido. Estas son válvulas reales de un atlas anatómico; la aórtica es una reconstrucción.', en: 'They only let blood flow one way. These are real valves from an anatomical atlas; the aortic one is a reconstruction.' }
     ], enter: (c) => { c.controls.autoRotate = true; c.controls.autoRotateSpeed = .35; }, exit: (c) => { c.controls.autoRotate = false; } },
-  { title: { es: 'Abren y cierran', en: 'Open and shut' }, cam: { pos: [.8, 1.1, 4.2], target: [.3, .5, 0] }, labels: [0, 1, 2, 3], xray: true,
+  { title: { es: 'Abren y cierran', en: 'Open and shut' }, cam: { pos: [.8, 1.1, 4.2], target: [.3, .5, 0] }, labels: [0, 1, 2, 3], xray: false,
     lines: [
       { es: 'Cuando los ventrículos se contraen, se cierran tricúspide y mitral: es el primer ruido, S1 («lub»).', en: 'When the ventricles contract, the tricuspid and mitral close: that is the first sound, S1 ("lub").' },
       { es: 'Al terminar la contracción se cierran la aórtica y la pulmonar: es el segundo ruido, S2 («dub»).', en: 'When contraction ends the aortic and pulmonary valves close: the second sound, S2 ("dub").' },
       { es: 'Activa el sonido ♪ y mira el fonocardiograma. Va en cámara lenta.', en: 'Turn on sound ♪ and watch the phonocardiogram. This is slow motion.' }
     ], enter: (c) => { c.timeScale = .35; }, exit: (c) => { c.timeScale = 1; } },
-  { title: { es: 'Dónde escuchar', en: 'Where to listen' }, cam: { pos: [.8, .4, 10.8], target: [.4, .2, 0] }, labels: [4, 5, 6, 7], xray: true,
+  { title: { es: 'Dónde escuchar', en: 'Where to listen' }, cam: { pos: [.8, .4, 10.8], target: [.4, .2, 0] }, labels: [4, 5, 6, 7], xray: false,
     lines: [
       { es: 'Cada válvula se escucha mejor en un punto del tórax: los focos de auscultación.', en: 'Each valve is heard best at a spot on the chest: the auscultation areas.' },
       { es: 'Elige un foco y escucha: en los de la base domina S2; en los de la punta domina S1.', en: 'Pick an area and listen: at the base S2 dominates; at the apex S1 dominates.' },
       { es: 'La piel es real, del mismo atlas; el corazón queda detrás, visto con rayos X.', en: 'The skin is real, from the same atlas; the heart sits behind it, seen with X-ray.' }
     ], enter: () => { S.showChest = true; }, exit: () => { S.showChest = false; } },
-  { title: { es: 'Los soplos', en: 'Murmurs' }, cam: { pos: [.8, .4, 10.8], target: [.4, .2, 0] }, labels: [4, 5, 6, 7], xray: true,
+  { title: { es: 'Los soplos', en: 'Murmurs' }, cam: { pos: [.8, .4, 10.8], target: [.4, .2, 0] }, labels: [4, 5, 6, 7], xray: false,
     lines: [
       { es: 'Un soplo es el ruido de la sangre que pasa con turbulencia por una válvula enferma.', en: 'A murmur is the sound of blood flowing turbulently through a diseased valve.' },
       { es: 'La estenosis aórtica da un soplo sistólico que crece y decrece; se oye mejor en el foco aórtico.', en: 'Aortic stenosis gives a systolic murmur that rises and falls; loudest at the aortic area.' },
       { es: 'La insuficiencia mitral da un soplo que ocupa toda la sístole; se oye mejor en la punta. Simulación educativa.', en: 'Mitral regurgitation gives a murmur that fills all of systole; loudest at the apex. Educational simulation.' }
     ], enter: () => { S.showChest = true; }, exit: () => { S.showChest = false; S.murmur = 'none'; } },
-  { title: { es: 'Ponte a prueba', en: 'Test yourself' }, cam: { pos: [1.4, .9, 6.8], target: [0, .3, 0] }, labels: [], xray: true,
+  { title: { es: 'Ponte a prueba', en: 'Test yourself' }, cam: { pos: [1.4, .9, 6.8], target: [0, .3, 0] }, labels: [], xray: false,
     lines: [{ es: 'Tres preguntas para cerrar.', en: 'Three questions to finish.' }], enter: (c) => setTimeout(() => c.chapter() === 4 && c.quiz(QUIZ), 900) }
 ];
 const QUIZ = [
@@ -55,7 +55,7 @@ const QUIZ = [
 
 createDemo({
   title: { es: 'Válvulas y ruidos del corazón', en: 'Heart valves and sounds' }, accent: '#ff6b81', bg: '#07060a', bgTop: '#2a1c22', bgMid: '#120c10', fog: .03, floorY: -2.4,
-  camera: chapters[0].cam, thumb: { pos: [1.0, .8, 5.4], target: [.2, .4, 0], chapter: 1 }, bloom: { strength: .7, radius: .45, threshold: .4 }, credit: BP3D_CREDIT, sources: { es: 'Focos de auscultación clásicos; ruidos y soplos sintetizados con fines educativos.', en: 'Classic auscultation areas; heart sounds and murmurs synthesized for teaching.' }, chapters,
+  camera: chapters[0].cam, thumb: { pos: [1.0, .8, 5.4], target: [.2, .4, 0], chapter: 1 }, bloom: { strength: .22, radius: .4, threshold: .7 }, credit: BP3D_CREDIT, sources: { es: 'Focos de auscultación clásicos; ruidos y soplos sintetizados con fines educativos.', en: 'Classic auscultation areas; heart sounds and murmurs synthesized for teaching.' }, chapters,
   action(ui, c, ci) {
     c.state.mHR = ui.metric({ es: 'latidos/min', en: 'beats/min' }, '♥');
     if (ci === 1) ui.button({ es: 'Cámara lenta', en: 'Slow motion' }, (v) => { c.timeScale = v ? .35 : 1; }, { toggle: true, value: true });
@@ -71,22 +71,26 @@ createDemo({
       loadPack('valves', { center: CEN, scale: SC }), loadPack('body', { center: CEN, scale: SC })]);
     const toT = (x, y, z) => V((x - CEN[0]) * SC, (z - CEN[2]) * SC, -(y - CEN[1]) * SC);
     const heart = new THREE.Group(); scene.add(heart);
-    const add = (geo, color, real, opts = {}, ghost = .08) => { const m = holoMesh(geo, color, { real, realOpts: opts, ghost, opacity: .015, rim: .45, intensity: .75, edges: false }); heart.add(m); return m; };
-    add(H.geo.wall, '#ff5a6e', 'muscle', {}, .06); add(H.geo.coronary, '#ff3b5c', 'artery', { color: '#b11d2d' }, .05);
-    add(H.geo.aorta, '#ff3b5c', 'artery', { color: '#b8343f' }, .1); add(H.geo.pulmArtery, '#6f8bff', 'vein', { color: '#3f52b3' }, .1);
-    add(H.geo.pulmVeins, '#ff3b5c', 'artery', { color: '#a8323e' }, .08); add(H.geo.svc, '#6f8bff', 'vein', { color: '#34408e' }, .08); add(H.geo.ivc, '#6f8bff', 'vein', { color: '#34408e' }, .08);
+    // corazón real y opaco, abierto en un corte frontal: se quita la mitad anterior para ver las cuatro válvulas (como una pieza de anatomía)
+    const cut = new THREE.Plane(V(0, 0, -1), 0);
+    const add = (geo, color, real, opts = {}, inner = '#4a1418') => { const m = new THREE.Mesh(geo, realMat(real, { ...opts, side: THREE.FrontSide, clippingPlanes: [cut], clipShadows: true })); m.castShadow = m.receiveShadow = true; heart.add(m);
+      const cav = new THREE.Mesh(geo, realMat(real, { color: inner, roughness: .82, clearcoat: 0, sheen: 0, side: THREE.BackSide, clippingPlanes: [cut] })); heart.add(cav); return m; }; // por dentro: cavidad mate y en sombra
+    add(H.geo.wall, '#ff5a6e', 'muscle', { roughness: .5, clearcoat: .25, clearcoatRoughness: .4 }); add(H.geo.coronary, '#ff3b5c', 'artery', { color: '#a0202c' });
+    add(H.geo.aorta, '#ff3b5c', 'artery', { color: '#c4978c' }, '#7a4a46'); add(H.geo.pulmArtery, '#6f8bff', 'vein', { color: '#b0827f' }, '#6e4442');
+    add(H.geo.pulmVeins, '#ff3b5c', 'vein', { color: '#9c5a5e' }); add(H.geo.svc, '#6f8bff', 'vein', { color: '#6d5a78' }); add(H.geo.ivc, '#6f8bff', 'vein', { color: '#6d5a78' });
     // válvulas reales + aórtica reconstruida
-    const valveMat = (col) => realMat('cartilage', { color: col, emissive: col, emissiveIntensity: .0 });
+    const valveMat = (col) => realMat('cartilage', { color: col, roughness: .62, clearcoat: .15, side: THREE.DoubleSide, emissive: col, emissiveIntensity: .0 });
     const valves = {};
-    for (const [k, col] of [['tricuspid', '#f2d6b8'], ['mitral', '#f2d6b8'], ['pulmonary', '#e9e0ff']]) {
+    for (const [k, col] of [['tricuspid', '#d8c3a8'], ['mitral', '#d8c3a8'], ['pulmonary', '#d8c6b4']]) {
       const geo = VP.geo[k], ctr = geo.boundingSphere.center.clone(); geo.translate(-ctr.x, -ctr.y, -ctr.z);
       const grp = new THREE.Group(); grp.position.copy(ctr); heart.add(grp); const mesh = new THREE.Mesh(geo, valveMat(col)); grp.add(mesh); valves[k] = { grp, mesh, ctr };
     }
+    { const zs = ['tricuspid', 'mitral', 'pulmonary'].map((k) => valves[k].ctr.z); cut.constant = Math.max(...zs) - .02; }
     const nearest = (geo, ref) => { const pa = geo.attributes.position, t = V(0, 0, 0), b = V(0, 0, 0); let d = 1e9; for (let i = 0; i < pa.count; i++) { t.fromBufferAttribute(pa, i); const e = t.distanceToSquared(ref); if (e < d) { d = e; b.copy(t); } } return b; };
     const aoRoot = nearest(H.geo.aorta, valves.mitral.ctr.clone().lerp(valves.pulmonary.ctr, .5)); const aoUp = nearest(H.geo.aorta, aoRoot.clone().add(V(0, .6, 0))).sub(aoRoot).normalize();
     const aoG = new THREE.Group(); aoG.position.copy(aoRoot); aoG.quaternion.setFromUnitVectors(V(0, 1, 0), aoUp); heart.add(aoG);
     // válvula aórtica: tres valvas semilunares en bolsillo; cerradas forman una «Y», abiertas se pegan a la pared
-    const AR = .23, AD = .19, NU = 18, NV = 9, aoMat = valveMat('#f2d6b8'); aoMat.side = THREE.DoubleSide;
+    const AR = .23, AD = .19, NU = 18, NV = 9, aoMat = valveMat('#d8c3a8'); aoMat.side = THREE.DoubleSide;
     const cusps = []; for (let i = 0; i < 3; i++) {
       const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array((NU + 1) * (NV + 1) * 3), 3));
       const idx = []; for (let a = 0; a < NU; a++) for (let b = 0; b < NV; b++) { const q = a * (NV + 1) + b, r = q + NV + 1; idx.push(q, r, q + 1, r, r + 1, q + 1); } g2.setIndex(idx);
@@ -104,12 +108,12 @@ createDemo({
         cp.g.attributes.position.needsUpdate = true; cp.g.computeVertexNormals(); } };
     shapeCusps(0, false);
     // capítulo 2: vista desde la aorta hacia abajo (se ven las sigmoideas y, más abajo, mitral y tricúspide)
-    { const top = aoRoot.clone().addScaledVector(aoUp, 2.3).add(V(-.55, 0, -.8)); chapters[1].cam.pos = top.toArray(); chapters[1].cam.target = aoRoot.clone().addScaledVector(aoUp, -.35).toArray(); }
+    { const top = aoRoot.clone().addScaledVector(aoUp, 1.9).add(V(-.25, 0, 1.25)); /* desde delante: se ve dentro de la raíz aórtica abierta */ chapters[1].cam.pos = top.toArray(); chapters[1].cam.target = aoRoot.clone().addScaledVector(aoUp, -.35).toArray(); }
     // pared del seno aórtico (anillo translúcido) para dar contexto
-    const sinus = new THREE.Mesh(new THREE.CylinderGeometry(AR * 1.05, AR * 1.08, AD * 1.4, 36, 1, true), realMat('artery', { color: '#b8343f', transparent: true, opacity: .25, side: THREE.DoubleSide, depthWrite: false })); sinus.position.y = -AD * .35; aoG.add(sinus);
+    const sinus = new THREE.Mesh(new THREE.CylinderGeometry(AR * 1.05, AR * 1.08, AD * 1.4, 36, 1, true), realMat('artery', { color: '#c4978c', side: THREE.DoubleSide, clippingPlanes: [cut] })); sinus.position.y = -AD * .35; aoG.add(sinus);
     valves.aortic = { grp: aoG, mesh: { material: aoMat }, ctr: aoRoot };
     // piel del tórax con los focos
-    const chest = holoMesh(CH.geo.skin, '#ffb38a', { real: 'skin', realOpts: { side: THREE.DoubleSide }, ghost: .22, opacity: .01, rim: .35, intensity: .6, edges: false }); scene.add(chest);
+    const chest = new THREE.Mesh(CH.geo.skin, realMat('skin', { side: THREE.DoubleSide, transparent: true, opacity: .22, depthWrite: false })); chest.renderOrder = 2; scene.add(chest); // piel tenue: deja ver el corazón debajo de los focos
     const sp = CH.geo.skin.attributes.position, tv = V(0, 0, 0);
     const surf = (xmm, zmm) => { const tgt = toT(xmm, -120, zmm); let best = null, bd = 1e9; for (let i = 0; i < sp.count; i++) { tv.fromBufferAttribute(sp, i); const d = (tv.x - tgt.x) ** 2 + (tv.y - tgt.y) ** 2 - tv.z * .02; if (d < bd) { bd = d; best = tv.clone(); } } return best; };
     const markers = {};
